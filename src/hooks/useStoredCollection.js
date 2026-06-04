@@ -83,7 +83,13 @@ function useStoredCollection(storageKey, demoRecords, options = {}) {
     writeStoredCollection(storageKey, []);
   };
 
-  return { records, storedRecords, addRecord, addRecords, upsertRecords, mergeRecord, clearRecords };
+  const deleteRecord = (recordId) => {
+    const nextRecords = storedRecords.filter((record) => String(record.id) !== String(recordId));
+    setStoredRecords(nextRecords);
+    writeStoredCollection(storageKey, nextRecords);
+  };
+
+  return { records, storedRecords, addRecord, addRecords, upsertRecords, mergeRecord, deleteRecord, clearRecords };
 }
 
 export default useStoredCollection;

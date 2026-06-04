@@ -6,6 +6,7 @@ import SectionCard from "../components/SectionCard";
 import SuccessMessage from "../components/SuccessMessage";
 import useStoredCollection from "../hooks/useStoredCollection";
 import evrakData from "../data/evraklar.json";
+import { extractTextFromFile, formatFileSize, getDocumentType } from "../utils/fileText";
 
 const tabs = ["Mail Şablonları", "Excel Dosyaları", "Resmi Yazılar", "Formlar"];
 
@@ -17,38 +18,15 @@ const emptyForm = {
   dosyaLinki: "",
 };
 
-const fileTypeMap = {
-  xlsx: "Excel Dosyaları",
-  xls: "Excel Dosyaları",
-  csv: "Excel Dosyaları",
-  pdf: "Resmi Yazılar",
-  doc: "Resmi Yazılar",
-  docx: "Resmi Yazılar",
-  txt: "Formlar",
-};
-
-function getFileExtension(fileName) {
-  return fileName.split(".").pop()?.toLocaleLowerCase("tr-TR") || "";
-}
-
-function getDocumentType(fileName) {
-  return fileTypeMap[getFileExtension(fileName)] || "Formlar";
-}
-
-function formatFileSize(size) {
-  if (!size) return "0 KB";
-  if (size < 1024 * 1024) return `${Math.ceil(size / 1024)} KB`;
-  return `${(size / (1024 * 1024)).toFixed(1)} MB`;
-}
-
 function Evraklar() {
-  const { records: docs, addRecord } = useStoredCollection("evrakRecords", evrakData);
+  const { records: docs, addRecord, deleteRecord } = useStoredCollection("evrakRecords", evrakData);
   const [activeTab, setActiveTab] = useState(tabs[0]);
   const [modalOpen, setModalOpen] = useState(false);
   const [formData, setFormData] = useState(emptyForm);
   const [formError, setFormError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [selectedFile, setSelectedFile] = useState(null);
+  const [fileNotice, setFileNotice] = useState("");
 
   const filteredDocs = useMemo(
     () => docs.filter((item) => item.tur === activeTab),
@@ -60,24 +38,41 @@ function Evraklar() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleFileChange = (event) => {
+  const handleFileChange = async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
+    setFileNotice("");
 
     const fileInfo = {
       ad: file.name,
       boyut: formatFileSize(file.size),
       tur: getDocumentType(file.name),
     };
+    const extractedText = await extractTextFromFile(file);
 
     setSelectedFile(fileInfo);
     setFormData((prev) => ({
       ...prev,
       ad: prev.ad || fileInfo.ad,
       tur: fileInfo.tur,
+      aciklama: extractedText
+        ? [prev.aciklama, `Dosyadan çıkarılan içerik:\n${extractedText}`].filter(Boolean).join("\n\n")
+        : prev.aciklama,
       dosyaLinki: `Tarayıcı içi kaynak kaydı · ${fileInfo.boyut}`,
     }));
+    setFileNotice(
+      extractedText
+        ? "Dosya içeriği açıklama alanına aktarıldı."
+        : "Bu dosya kaynak olarak kaydedilir; bu türden otomatik metin çıkarılamadı.",
+    );
     event.target.value = "";
+  };
+
+  const handleDelete = (doc) => {
+    if (window.confirm(`"${doc.ad}" kaydı silinsin mi?`)) {
+      deleteRecord(doc.id);
+      setSuccessMessage("Evrak / şablon kaydı silindi.");
+    }
   };
 
   const handleSubmit = (event) => {
@@ -155,12 +150,18 @@ function Evraklar() {
             >
               <div className="flex items-center justify-between gap-3">
                 <Badge>{doc.tur}</Badge>
-                <button
-                  type="button"
-                  className="rounded-xl border border-[#D6DEEA] bg-[#F8FAFD] px-3 py-2 text-xs font-medium text-[#1F2D5C]"
-                >
-                  Kayıt
-                </button>
+                <div className="flex gap-2">
+                  <span className="rounded-xl border border-[#D6DEEA] bg-[#F8FAFD] px-3 py-2 text-xs font-medium text-[#1F2D5C]">
+                    Kayıt
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(doc)}
+                    className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-medium text-red-700"
+                  >
+                    Sil
+                  </button>
+                </div>
               </div>
               <h3 className="mt-4 text-lg font-semibold text-[#1F2D5C]">{doc.ad}</h3>
               <p className="mt-2 text-sm font-medium text-slate-500">{doc.ilgiliOperasyon}</p>
@@ -219,7 +220,7 @@ function Evraklar() {
               <div>
                 <p className="text-sm font-semibold text-[#1F2D5C]">Yerel dosya seç</p>
                 <p className="mt-1 text-xs leading-5 text-slate-500">
-                  Dosya sunucuya yüklenmez; adı, türü ve kaynak bilgisi evrak hafızasına kaydedilir.
+                  Dosya sunucuya yüklenmez. Excel, CSV, TXT, PDF ve DOCX içerikleri açıklama alanına aktarılabilir.
                 </p>
               </div>
               <label className="inline-flex cursor-pointer rounded-xl border border-[#D6DEEA] bg-white px-4 py-3 text-sm font-semibold text-[#1F2D5C]">
@@ -235,6 +236,11 @@ function Evraklar() {
             {selectedFile && (
               <p className="mt-3 rounded-xl bg-white px-3 py-2 text-xs text-slate-600">
                 Seçilen dosya: <span className="font-semibold text-[#1F2D5C]">{selectedFile.ad}</span> · {selectedFile.tur} · {selectedFile.boyut}
+              </p>
+            )}
+            {fileNotice && (
+              <p className="mt-2 rounded-xl border border-[#D6DEEA] bg-white px-3 py-2 text-xs leading-5 text-slate-600">
+                {fileNotice}
               </p>
             )}
           </div>

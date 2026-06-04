@@ -74,7 +74,7 @@ const boardCols = [
 
 function HaftalikFaaliyetler() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const { records: logs, mergeRecord } = useStoredCollection("haftalikLogRecords", initialLogs, {
+  const { records: logs, mergeRecord, deleteRecord } = useStoredCollection("haftalikLogRecords", initialLogs, {
     sortByDateField: "haftaBaslangic",
   });
   const { records: operations } = useStoredCollection("operasyonRecords", operasyonData);
@@ -190,6 +190,15 @@ function HaftalikFaaliyetler() {
   };
 
   const getOpName = (id) => operations.find((op) => String(op.id) === String(id))?.ad || "";
+
+  const handleDeleteSelectedLog = () => {
+    if (!selectedLog) return;
+
+    if (window.confirm(`"${selectedLog.haftaLabel}" haftalık kaydı silinsin mi?`)) {
+      deleteRecord(selectedLog.id);
+      setSuccessMessage("Haftalık faaliyet kaydı silindi.");
+    }
+  };
 
   const ws = weekStart(selectedDate);
   const we = new Date(ws);
@@ -341,6 +350,13 @@ function HaftalikFaaliyetler() {
                       {getOpName(id)}
                     </span>
                   ))}
+                  <button
+                    type="button"
+                    onClick={handleDeleteSelectedLog}
+                    className="ml-auto rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700"
+                  >
+                    Haftayı Sil
+                  </button>
                 </div>
               </div>
 
