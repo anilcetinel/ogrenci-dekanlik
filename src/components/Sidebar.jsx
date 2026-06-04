@@ -32,6 +32,16 @@ const navItems = [
     ),
   },
   {
+    to: "/hizli-not",
+    label: "Hızlı Not Girişi",
+    icon: (
+      <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+        <path d="M12 20h9" />
+        <path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z" />
+      </svg>
+    ),
+  },
+  {
     to: "/operasyon-takip",
     label: "Yapılan İşler Takibi",
     icon: (

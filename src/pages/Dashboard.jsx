@@ -233,6 +233,7 @@ function Dashboard() {
         <SectionCard title="Hızlı Erişim">
           <div className="grid gap-2">
             {[
+              { to: "/hizli-not", label: "Hızlı Not Girişi" },
               { to: "/haftalik-faaliyetler", label: "Haftalık Kayıt Ekle" },
               { to: "/akademik-takvim", label: "Akademik Takvim" },
               { to: "/operasyon-takip", label: "Yapılan İşler Takibi" },

@@ -6,6 +6,7 @@ import Topbar from "./Topbar";
 const titles = {
   "/": "Yönetim Paneli",
   "/akademik-takvim": "Akademik Takvim",
+  "/hizli-not": "Hızlı Not Girişi",
   "/operasyon-takip": "Yapılan İşler Takibi",
   "/haftalik-faaliyetler": "Haftalık Faaliyetler",
   "/is-nasil-yapilir": "İş Nasıl Yapılır",

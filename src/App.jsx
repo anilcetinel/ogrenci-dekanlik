@@ -8,6 +8,7 @@ import OperasyonDetay from "./pages/OperasyonDetay";
 import HaftalikFaaliyetler from "./pages/HaftalikFaaliyetler";
 import SunumHazirla from "./pages/SunumHazirla";
 import Evraklar from "./pages/Evraklar";
+import HizliNotGiris from "./pages/HizliNotGiris";
 
 function App() {
   return (
@@ -15,6 +16,7 @@ function App() {
       <Route element={<Layout />}>
         <Route index element={<Dashboard />} />
         <Route path="/akademik-takvim" element={<AkademikTakvim />} />
+        <Route path="/hizli-not" element={<HizliNotGiris />} />
         <Route path="/operasyon-takip" element={<OperasyonTakip />} />
         <Route path="/operasyonlar/:id" element={<OperasyonDetay />} />
         <Route path="/haftalik-faaliyetler" element={<HaftalikFaaliyetler />} />
