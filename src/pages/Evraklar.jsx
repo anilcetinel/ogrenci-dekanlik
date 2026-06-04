@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import Badge from "../components/Badge";
 import FormModal from "../components/FormModal";
 import SectionCard from "../components/SectionCard";
@@ -16,6 +17,30 @@ const emptyForm = {
   dosyaLinki: "",
 };
 
+const fileTypeMap = {
+  xlsx: "Excel Dosyaları",
+  xls: "Excel Dosyaları",
+  csv: "Excel Dosyaları",
+  pdf: "Resmi Yazılar",
+  doc: "Resmi Yazılar",
+  docx: "Resmi Yazılar",
+  txt: "Formlar",
+};
+
+function getFileExtension(fileName) {
+  return fileName.split(".").pop()?.toLocaleLowerCase("tr-TR") || "";
+}
+
+function getDocumentType(fileName) {
+  return fileTypeMap[getFileExtension(fileName)] || "Formlar";
+}
+
+function formatFileSize(size) {
+  if (!size) return "0 KB";
+  if (size < 1024 * 1024) return `${Math.ceil(size / 1024)} KB`;
+  return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 function Evraklar() {
   const { records: docs, addRecord } = useStoredCollection("evrakRecords", evrakData);
   const [activeTab, setActiveTab] = useState(tabs[0]);
@@ -23,6 +48,7 @@ function Evraklar() {
   const [formData, setFormData] = useState(emptyForm);
   const [formError, setFormError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+  const [selectedFile, setSelectedFile] = useState(null);
 
   const filteredDocs = useMemo(
     () => docs.filter((item) => item.tur === activeTab),
@@ -32,6 +58,26 @@ function Evraklar() {
   const handleChange = (event) => {
     const { name, value } = event.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleFileChange = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const fileInfo = {
+      ad: file.name,
+      boyut: formatFileSize(file.size),
+      tur: getDocumentType(file.name),
+    };
+
+    setSelectedFile(fileInfo);
+    setFormData((prev) => ({
+      ...prev,
+      ad: prev.ad || fileInfo.ad,
+      tur: fileInfo.tur,
+      dosyaLinki: `Tarayıcı içi kaynak kaydı · ${fileInfo.boyut}`,
+    }));
+    event.target.value = "";
   };
 
   const handleSubmit = (event) => {
@@ -49,6 +95,7 @@ function Evraklar() {
     });
     setActiveTab(formData.tur);
     setFormData(emptyForm);
+    setSelectedFile(null);
     setModalOpen(false);
     setSuccessMessage("Evrak / şablon kaydı başarıyla eklendi.");
   };
@@ -58,17 +105,29 @@ function Evraklar() {
       <SuccessMessage>{successMessage}</SuccessMessage>
 
       <SectionCard
-        title="Evrak Kategorileri"
+        title="Kaynak Evrak ve Şablon Arşivi"
         action={
-          <button
-            type="button"
-            onClick={() => setModalOpen(true)}
-            className="rounded-xl bg-[#00377B] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[#1F2D5C]"
-          >
-            Yeni Evrak / Şablon Ekle
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <Link
+              to="/hizli-not"
+              className="rounded-xl border border-[#D6DEEA] bg-white px-4 py-2.5 text-sm font-medium text-[#1F2D5C] transition hover:border-[#00377B]"
+            >
+              Dosyadan Not Çıkar
+            </Link>
+            <button
+              type="button"
+              onClick={() => setModalOpen(true)}
+              className="rounded-xl bg-[#00377B] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[#1F2D5C]"
+            >
+              Yeni Evrak / Şablon Ekle
+            </button>
+          </div>
         }
       >
+        <p className="mb-4 max-w-4xl text-sm leading-6 text-slate-600">
+          Bu alan tek başına dosya vitrini değil; hızlı notlardan, Excel/PDF/Word kaynaklarından ve operasyon süreçlerinde kullanılan
+          şablonlardan oluşan kurumsal evrak hafızasıdır. Dosyadan faaliyet çıkarmak için önce Hızlı Not Girişi kullanılabilir.
+        </p>
         <div className="flex flex-wrap gap-3">
           {tabs.map((tab) => (
             <button
@@ -100,7 +159,7 @@ function Evraklar() {
                   type="button"
                   className="rounded-xl border border-[#D6DEEA] bg-[#F8FAFD] px-3 py-2 text-xs font-medium text-[#1F2D5C]"
                 >
-                  İndir
+                  Kayıt
                 </button>
               </div>
               <h3 className="mt-4 text-lg font-semibold text-[#1F2D5C]">{doc.ad}</h3>
@@ -108,7 +167,7 @@ function Evraklar() {
               <p className="mt-3 text-sm leading-6 text-slate-600">{doc.aciklama}</p>
               {doc.dosyaLinki && (
                 <p className="mt-3 rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-500">
-                  Dosya linki: {doc.dosyaLinki}
+                  Kaynak: {doc.dosyaLinki}
                 </p>
               )}
             </article>
@@ -117,7 +176,7 @@ function Evraklar() {
       ) : (
         <SectionCard title="Belge bulunamadı">
           <div className="rounded-2xl border border-dashed border-[#D6DEEA] bg-slate-50 p-6 text-sm text-slate-500">
-            Bu kategori için henüz belge kaydı bulunmuyor.
+            Bu kategori için henüz belge kaydı yok. Dosyadan faaliyet çıkarmak için Hızlı Not Girişi sayfasını kullanabilirsiniz.
           </div>
         </SectionCard>
       )}
@@ -155,6 +214,30 @@ function Evraklar() {
             <span>Dosya linki placeholder</span>
             <input name="dosyaLinki" value={formData.dosyaLinki} onChange={handleChange} placeholder="Örn. /sablonlar/final-programi.xlsx" className="w-full rounded-xl border border-[#D6DEEA] px-4 py-3 outline-none" />
           </label>
+          <div className="rounded-2xl border border-dashed border-[#D6DEEA] bg-[#F8FAFD] p-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-semibold text-[#1F2D5C]">Yerel dosya seç</p>
+                <p className="mt-1 text-xs leading-5 text-slate-500">
+                  Dosya sunucuya yüklenmez; adı, türü ve kaynak bilgisi evrak hafızasına kaydedilir.
+                </p>
+              </div>
+              <label className="inline-flex cursor-pointer rounded-xl border border-[#D6DEEA] bg-white px-4 py-3 text-sm font-semibold text-[#1F2D5C]">
+                Dosya Seç
+                <input
+                  type="file"
+                  accept=".xlsx,.xls,.csv,.txt,.pdf,.doc,.docx"
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+              </label>
+            </div>
+            {selectedFile && (
+              <p className="mt-3 rounded-xl bg-white px-3 py-2 text-xs text-slate-600">
+                Seçilen dosya: <span className="font-semibold text-[#1F2D5C]">{selectedFile.ad}</span> · {selectedFile.tur} · {selectedFile.boyut}
+              </p>
+            )}
+          </div>
           <div className="flex justify-end gap-3 pt-2">
             <button type="button" onClick={() => setModalOpen(false)} className="rounded-xl border border-[#D6DEEA] px-4 py-3 text-sm font-medium text-slate-600">
               Vazgeç

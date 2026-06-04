@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import * as XLSX from "xlsx";
 import Badge from "../components/Badge";
 import FormModal from "../components/FormModal";
 import SectionCard from "../components/SectionCard";
@@ -6,6 +7,7 @@ import SuccessMessage from "../components/SuccessMessage";
 import useStoredCollection from "../hooks/useStoredCollection";
 import haftalikLogData from "../data/haftalik-log.json";
 import operasyonData from "../data/operasyon-kutuphanesi.json";
+import evrakData from "../data/evraklar.json";
 import { splitLines } from "../utils/storage";
 
 const dayFmt = new Intl.DateTimeFormat("tr-TR", { day: "2-digit", month: "short" });
@@ -17,6 +19,16 @@ const emptyForm = {
   hazirlayan: "Öğrenci Dekanlığı",
   icerik: "",
   operasyonIds: [],
+};
+
+const fileTypeMap = {
+  xlsx: "Excel Dosyaları",
+  xls: "Excel Dosyaları",
+  csv: "Excel Dosyaları",
+  doc: "Resmi Yazılar",
+  docx: "Resmi Yazılar",
+  pdf: "Resmi Yazılar",
+  txt: "Formlar",
 };
 
 const categoryRules = [
@@ -90,6 +102,42 @@ function inferOperationIdsFromNote(note, operations) {
     .map((operation) => String(operation.id));
 }
 
+function getFileExtension(fileName) {
+  return fileName.split(".").pop()?.toLocaleLowerCase("tr-TR") || "";
+}
+
+function getDocumentType(fileName) {
+  return fileTypeMap[getFileExtension(fileName)] || "Formlar";
+}
+
+function formatFileSize(size) {
+  if (!size) return "0 KB";
+  if (size < 1024 * 1024) return `${Math.ceil(size / 1024)} KB`;
+  return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+async function extractTextFromFile(file) {
+  const extension = getFileExtension(file.name);
+
+  if (["xlsx", "xls"].includes(extension)) {
+    const buffer = await file.arrayBuffer();
+    const workbook = XLSX.read(buffer, { type: "array", cellDates: true });
+    return workbook.SheetNames.map((sheetName) => {
+      const rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { header: 1, defval: "" });
+      const textRows = rows
+        .map((row) => row.filter((cell) => String(cell).trim()).join(" | "))
+        .filter(Boolean);
+      return [`[${sheetName}]`, ...textRows].join("\n");
+    }).join("\n\n");
+  }
+
+  if (["csv", "txt"].includes(extension)) {
+    return file.text();
+  }
+
+  return "";
+}
+
 function buildPreview(formData, operations) {
   const buckets = { yapilanlar: [], yapilacaklar: [], bekleyenler: [], sorunlar: [] };
   splitNoteSentences(formData.icerik).forEach((sentence) => {
@@ -108,10 +156,13 @@ function HizliNotGiris() {
   });
   const { records: operations } = useStoredCollection("operasyonRecords", operasyonData);
   const { records: notes, addRecord: addNote } = useStoredCollection("hizliNotRecords", []);
+  const { addRecord: addDocument } = useStoredCollection("evrakRecords", evrakData);
   const [formData, setFormData] = useState(emptyForm);
   const [formError, setFormError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
+  const [attachedFiles, setAttachedFiles] = useState([]);
+  const [fileNotice, setFileNotice] = useState("");
 
   const preview = useMemo(() => buildPreview(formData, operations), [formData, operations]);
   const selectedOperations = operations.filter((operation) =>
@@ -131,6 +182,62 @@ function HizliNotGiris() {
         operasyonIds: ids.includes(operationId) ? ids.filter((id) => id !== operationId) : [...ids, operationId],
       };
     });
+  };
+
+  const handleFiles = async (event) => {
+    const files = Array.from(event.target.files || []);
+    setFileNotice("");
+
+    if (files.length === 0) {
+      return;
+    }
+
+    const nextAttachments = [];
+    const extractedBlocks = [];
+    const unsupported = [];
+
+    for (const file of files) {
+      const extension = getFileExtension(file.name);
+      const extractedText = await extractTextFromFile(file);
+      const attachment = {
+        id: `file-${Date.now()}-${file.name}`,
+        ad: file.name,
+        tur: getDocumentType(file.name),
+        boyut: formatFileSize(file.size),
+        uzanti: extension,
+        metinCikarildi: Boolean(extractedText),
+      };
+
+      nextAttachments.push(attachment);
+
+      if (extractedText) {
+        extractedBlocks.push(`Dosya: ${file.name}\n${extractedText}`);
+      } else {
+        unsupported.push(file.name);
+      }
+    }
+
+    setAttachedFiles((prev) => [...prev, ...nextAttachments]);
+
+    if (extractedBlocks.length > 0) {
+      setFormData((prev) => ({
+        ...prev,
+        kaynak: "Dosya",
+        icerik: [prev.icerik, ...extractedBlocks].filter(Boolean).join("\n\n"),
+      }));
+    }
+
+    if (unsupported.length > 0) {
+      setFileNotice(
+        `${unsupported.join(", ")} dosyası kaynak evrak olarak eklendi. Bu prototipte PDF/Word metni otomatik çıkarılmaz; özet kısmını not alanına yazabilirsiniz.`,
+      );
+    }
+
+    event.target.value = "";
+  };
+
+  const removeAttachment = (attachmentId) => {
+    setAttachedFiles((prev) => prev.filter((file) => file.id !== attachmentId));
   };
 
   const saveNote = (event) => {
@@ -158,6 +265,7 @@ function HizliNotGiris() {
       bekleyenler: preview.bekleyenler,
       sorunlar: preview.sorunlar,
     };
+    const noteId = `note-${Date.now()}`;
 
     mergeRecord(
       incomingRecord,
@@ -176,16 +284,30 @@ function HizliNotGiris() {
     );
 
     addNote({
-      id: `note-${Date.now()}`,
+      id: noteId,
       tarih: formData.tarih,
       kaynak: formData.kaynak,
       hazirlayan: formData.hazirlayan,
       icerik: formData.icerik,
       operasyonIds: preview.operasyonIds,
+      dosyalar: attachedFiles,
       olusturulma: new Date().toISOString(),
     });
 
+    attachedFiles.forEach((file) => {
+      addDocument({
+        id: `doc-${Date.now()}-${file.ad}`,
+        ad: file.ad,
+        tur: file.tur,
+        ilgiliOperasyon: selectedOperations.map((operation) => operation.ad).join(", ") || "Hızlı Not Girişi",
+        aciklama: `${dateFmt.format(new Date(formData.tarih))} tarihli hızlı nottan eklenen kaynak dosya. Boyut: ${file.boyut}.`,
+        dosyaLinki: "Tarayıcı içi kaynak kaydı",
+        kaynakNotId: noteId,
+      });
+    });
+
     setFormData({ ...emptyForm, tarih: formData.tarih, hazirlayan: formData.hazirlayan });
+    setAttachedFiles([]);
     setSuccessMessage("Hızlı not haftalık faaliyet kaydına işlendi.");
   };
 
@@ -240,6 +362,50 @@ function HizliNotGiris() {
                 placeholder="Örn. Final programı için salon talepleri alındı. Mühendislikte kapasite sorunu var. Gözetmen listesi cuma gününe kadar bekleniyor."
                 className="w-full rounded-xl border border-[#D6DEEA] px-4 py-3 leading-6 outline-none" />
             </label>
+            <div className="rounded-2xl border border-dashed border-[#D6DEEA] bg-[#F8FAFD] p-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-[#1F2D5C]">Dosyadan bilgi çek</p>
+                  <p className="mt-1 text-xs leading-5 text-slate-500">
+                    Excel, CSV ve TXT içerikleri not alanına aktarılır. PDF/Word dosyaları kaynak evrak olarak bağlanır.
+                  </p>
+                </div>
+                <label className="inline-flex cursor-pointer rounded-xl bg-[#00377B] px-4 py-3 text-sm font-semibold text-white">
+                  Dosya Seç
+                  <input
+                    type="file"
+                    multiple
+                    accept=".xlsx,.xls,.csv,.txt,.pdf,.doc,.docx"
+                    onChange={handleFiles}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+              {fileNotice && (
+                <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-700">
+                  {fileNotice}
+                </div>
+              )}
+              {attachedFiles.length > 0 && (
+                <div className="mt-3 grid gap-2 md:grid-cols-2">
+                  {attachedFiles.map((file) => (
+                    <div key={file.id} className="rounded-xl border border-[#E5E7EB] bg-white px-3 py-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <p className="text-sm font-semibold text-[#1F2D5C]">{file.ad}</p>
+                          <p className="mt-1 text-xs text-slate-500">
+                            {file.tur} · {file.boyut} · {file.metinCikarildi ? "metin alındı" : "kaynak olarak bağlandı"}
+                          </p>
+                        </div>
+                        <button type="button" onClick={() => removeAttachment(file.id)} className="text-xs font-semibold text-red-600">
+                          Kaldır
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
             <div className="rounded-xl border border-[#D6DEEA] bg-[#F8FAFD] px-4 py-3 text-xs leading-5 text-slate-500">
               Kişisel veri girmeyiniz. Öğrenci adı, T.C. kimlik numarası, telefon veya özel sağlık/disciplin bilgisi yazmayın.
             </div>
@@ -304,6 +470,15 @@ function HizliNotGiris() {
                   <span>{note.hazirlayan}</span>
                 </div>
                 <p className="line-clamp-2 text-sm leading-6 text-slate-600">{note.icerik}</p>
+                {note.dosyalar?.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {note.dosyalar.map((file) => (
+                      <span key={file.id} className="rounded-full bg-[#EEF3FA] px-2 py-1 text-[11px] font-semibold text-[#00377B]">
+                        {file.ad}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </article>
             ))}
           </div>
