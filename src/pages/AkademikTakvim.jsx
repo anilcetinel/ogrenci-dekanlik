@@ -299,6 +299,17 @@ function isLikelySectionHeader(value) {
   return true;
 }
 
+function isAcademicPeriodTitle(value) {
+  const normalized = normalizeText(value);
+  return (
+    normalized.includes("güz yarıyılı") ||
+    normalized.includes("bahar yarıyılı") ||
+    normalized.includes("yaz okulu dönemi") ||
+    normalized.includes("yarıyılı takvimi") ||
+    normalized.includes("akademik yılı")
+  );
+}
+
 function normalizeSectionTitle(value) {
   return String(value || "")
     .replace(/\s+/g, " ")
@@ -426,7 +437,9 @@ function AkademikTakvim() {
   const [previewRows, setPreviewRows] = useState([]);
   const [importError, setImportError] = useState("");
 
-  const calendarEvents = previewRows.length > 0 ? previewRows : events;
+  const calendarEvents = (previewRows.length > 0 ? previewRows : events).filter(
+    (event) => !isAcademicPeriodTitle(event.ad),
+  );
   const academicYearStart = useMemo(() => getAcademicYearStart(calendarEvents), [calendarEvents]);
   const visibleMonthDates = useMemo(
     () => buildVisibleMonthDates(calendarEvents, academicYearStart),
@@ -541,7 +554,7 @@ function AkademikTakvim() {
       }
 
       const parsedRow = buildEventFromArrayRow(row, index, headerInfo.matchedColumns, currentSectionTitle);
-      if (parsedRow) {
+      if (parsedRow && !isAcademicPeriodTitle(parsedRow.ad)) {
         parsedRows.push(parsedRow);
       }
     });
