@@ -1,0 +1,111 @@
+[
+  {
+    "id": 1,
+    "haftaLabel": "26 Mayıs - 1 Haziran 2026 Haftası",
+    "haftaBaslangic": "2026-05-26",
+    "operasyonIds": [1, 7, 8],
+    "yapilanlar": [
+      "Yaz okulu ders kayıtları öncesi OİS ders açma kontrolleri tamamlandı.",
+      "Mezuniyet kontrol listeleri üç fakülteden konsolide edildi.",
+      "Final programı revizyon talepleri için birimlerle koordinasyon toplantısı yapıldı."
+    ],
+    "yapilacaklar": [
+      "Yaz okulu kayıt duyurusu web ekibine iletilecek.",
+      "Final programı ek salon ihtiyacı için destek hizmetleriyle son kontrol yapılacak."
+    ],
+    "bekleyenler": [
+      "Eksik mezuniyet staj onaylarının bölümlerden dönmesi bekleniyor.",
+      "Yaz okulu duyuru metninin son onayı alınacak."
+    ],
+    "sorunlar": [
+      "Bazı derslik kapasite verileri güncel değil, destek hizmetlerinden teyit bekleniyor."
+    ],
+    "hazirlayan": "Operasyon Koordinasyon Birimi"
+  },
+  {
+    "id": 2,
+    "haftaLabel": "19 - 25 Mayıs 2026 Haftası",
+    "haftaBaslangic": "2026-05-19",
+    "operasyonIds": [5, 7],
+    "yapilanlar": [
+      "Aday mezun listesi ilk kontrolü tamamlandı.",
+      "Muafiyet süreci için evrak kontrol formu güncellendi.",
+      "Haftalık yönetim sunumu için akademik takvim özet tablosu hazırlandı."
+    ],
+    "yapilacaklar": [
+      "Aday mezun istisna kayıtları için bölüm teyitleri tamamlanacak.",
+      "Muafiyet duyuru metni komisyon takvimiyle eşleştirilecek."
+    ],
+    "bekleyenler": [
+      "Birim bazlı mezuniyet istisna kayıtlarının teyidi sürüyor."
+    ],
+    "sorunlar": [
+      "İki birimden gelen tablo formatları farklı olduğu için konsolidasyon süresi uzadı."
+    ],
+    "hazirlayan": "Öğrenci Dekanlığı Raporlama Ekibi"
+  },
+  {
+    "id": 3,
+    "haftaLabel": "12 - 18 Mayıs 2026 Haftası",
+    "haftaBaslangic": "2026-05-12",
+    "operasyonIds": [3, 4],
+    "yapilanlar": [
+      "Gözetmen planlaması için personel uygunluk listeleri toplandı.",
+      "Ders yönlendirme duyurularında kullanılacak ortak metin taslağı hazırlandı."
+    ],
+    "yapilacaklar": [
+      "Yedek gözetmen havuzu güncellenecek.",
+      "Derslik teknik altyapı kontrol listesi destek birimine gönderilecek."
+    ],
+    "bekleyenler": [
+      "Akşam oturumları için ek salon ihtiyacı netleştirilecek.",
+      "Bilgi İşlem biriminden OİS test sonucu beklenecek."
+    ],
+    "sorunlar": [
+      "Teknik altyapı test çıktıları geç paylaşıldığı için takvim sıkıştı."
+    ],
+    "hazirlayan": "Sınav ve Planlama Masası"
+  },
+  {
+    "id": 4,
+    "haftaLabel": "5 - 11 Mayıs 2026 Haftası",
+    "haftaBaslangic": "2026-05-05",
+    "operasyonIds": [1, 5],
+    "yapilanlar": [
+      "Final sınav programı taslak çizelgesi oluşturuldu.",
+      "Muafiyet komisyonu gündemine alınacak dosyalar sınıflandırıldı."
+    ],
+    "yapilacaklar": [
+      "Taslak sınav programı fakülte sekreterliklerine kontrol için gönderilecek.",
+      "Muafiyet dosyalarında eksik evrak listesi kesinleştirilecek."
+    ],
+    "bekleyenler": [
+      "Üç fakülteden sınav çakışma geri bildirimleri bekleniyor."
+    ],
+    "sorunlar": [
+      "Bazı derslerin ortak kod yapısı net olmadığı için çakışma kontrolü manuel yapıldı."
+    ],
+    "hazirlayan": "Akademik Operasyon Takımı"
+  },
+  {
+    "id": 5,
+    "haftaLabel": "28 Nisan - 4 Mayıs 2026 Haftası",
+    "haftaBaslangic": "2026-04-28",
+    "operasyonIds": [2, 6, 8],
+    "yapilanlar": [
+      "Evrak ve şablon arşivi için resmi yazı klasörleri yeniden düzenlendi.",
+      "Geçmiş yıl operasyon notları sınıflandırılarak kurumsal hafıza kaydı açıldı."
+    ],
+    "yapilacaklar": [
+      "Haftalık faaliyet formatı için birimlerden geri bildirim alınacak.",
+      "Evrak isimlendirme standardı taslağı hazırlanacak."
+    ],
+    "bekleyenler": [
+      "Yeni dönem için standart haftalık faaliyet formatının birimlerle paylaşılması planlanıyor."
+    ],
+    "sorunlar": [
+      "Eski dönem dosyalarında isimlendirme standardı bulunmadığından arşiv taraması zaman aldı."
+    ],
+    "hazirlayan": "İş Hafızası Çalışma Grubu"
+  }
+]

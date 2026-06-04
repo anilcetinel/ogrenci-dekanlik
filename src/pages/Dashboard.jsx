@@ -1,0 +1,300 @@
+import { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
+import Badge from "../components/Badge";
+import SectionCard from "../components/SectionCard";
+import StatCard from "../components/StatCard";
+import useStoredCollection from "../hooks/useStoredCollection";
+import takvimData from "../data/akademik-takvim.json";
+import haftalikLogData from "../data/haftalik-log.json";
+import operasyonData from "../data/operasyon-kutuphanesi.json";
+import { getCalendarAlert } from "../utils/calendar";
+
+const dateFormatter = new Intl.DateTimeFormat("tr-TR", { day: "2-digit", month: "long", year: "numeric" });
+const shortDateFormatter = new Intl.DateTimeFormat("tr-TR", { day: "2-digit", month: "short" });
+const monthFmt = new Intl.DateTimeFormat("tr-TR", { month: "long", year: "numeric" });
+const weekdayFormatter = new Intl.DateTimeFormat("tr-TR", { weekday: "long" });
+
+function getWeekRange(date) {
+  const d = new Date(date);
+  const day = d.getDay() || 7;
+  d.setDate(d.getDate() - day + 1);
+  const start = new Date(d);
+  d.setDate(d.getDate() + 4);
+  return `${shortDateFormatter.format(start)} – ${shortDateFormatter.format(d)}`;
+}
+
+function getMonthKey(date) {
+  const d = new Date(date);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+const TYPES = [
+  { key: "yapilanlar",   label: "Yapılanlar",   icon: "✓", bg: "bg-emerald-50",  text: "text-[#1F4D2C]", border: "border-emerald-200" },
+  { key: "yapilacaklar", label: "Yapılacaklar",  icon: "→", bg: "bg-blue-50",     text: "text-[#00377B]", border: "border-blue-200"    },
+  { key: "bekleyenler",  label: "Bekleyenler",   icon: "⏳", bg: "bg-amber-50",   text: "text-[#A34D00]", border: "border-amber-200"   },
+  { key: "sorunlar",     label: "Riskler",       icon: "!", bg: "bg-red-50",      text: "text-red-700",   border: "border-red-200"     },
+];
+
+function Dashboard() {
+  const { records: takvimRecords } = useStoredCollection("akademikTakvimRecords", takvimData);
+  const { records: operasyonRecords } = useStoredCollection("operasyonRecords", operasyonData);
+  const { records: logs } = useStoredCollection("haftalikLogRecords", haftalikLogData, {
+    sortByDateField: "haftaBaslangic",
+  });
+
+  const today = new Date();
+
+  // 2026-2027 akademik yılının tüm ayları + geçmiş kayıtlı aylar
+  const monthKeys = useMemo(() => {
+    // Tüm akademik yıl ayları: Eylül 2026 → Ağustos 2027
+    const academicMonths = Array.from({ length: 12 }, (_, i) => {
+      const month = (8 + i) % 12;      // 8=Eylül ... 7=Ağustos
+      const year  = i < 4 ? 2026 : 2027;
+      return `${year}-${String(month + 1).padStart(2, "0")}`;
+    });
+    // Geçmiş loglardan gelen aylar (Eylül 2026 öncesi)
+    const logMonths = logs.map((l) => getMonthKey(l.haftaBaslangic));
+    // Birleştir, tekrarları kaldır, yeniden eskiye sırala
+    const all = [...new Set([...logMonths, ...academicMonths])];
+    return all.sort().reverse();
+  }, [logs]);
+
+  const [selectedMonth, setSelectedMonth] = useState(() => getMonthKey(today));
+
+  // Seçili aya ait loglar
+  const monthLogs = useMemo(
+    () => logs.filter((l) => getMonthKey(l.haftaBaslangic) === selectedMonth),
+    [logs, selectedMonth],
+  );
+
+  // Seçili ayın birleşik maddeleri
+  const combined = useMemo(
+    () =>
+      TYPES.reduce((acc, t) => {
+        acc[t.key] = monthLogs.flatMap((l) => (l[t.key] || []).map((item) => ({ text: item, hafta: l.haftaLabel })));
+        return acc;
+      }, {}),
+    [monthLogs],
+  );
+
+  const calendarAlerts = useMemo(
+    () =>
+      takvimRecords
+        .map((item) => ({ ...item, alert: getCalendarAlert(item, today) }))
+        .filter((item) => ["bilgi", "dikkat", "kritik", "devam"].includes(item.alert.level))
+        .sort((a, b) => {
+          const order = { kritik: 0, dikkat: 1, devam: 2, bilgi: 3 };
+          return (order[a.alert.level] ?? 9) - (order[b.alert.level] ?? 9);
+        }),
+    [takvimRecords],
+  );
+
+  const urgentCount = calendarAlerts.filter((e) => ["kritik", "dikkat"].includes(e.alert.level)).length;
+
+  const getMonthLabel = (key) => {
+    const [y, m] = key.split("-");
+    return monthFmt.format(new Date(Number(y), Number(m) - 1, 1));
+  };
+
+  return (
+    <div className="space-y-5">
+
+      {/* Üst bilgi bandı */}
+      <section className="rounded-2xl border border-[#D6DEEA] bg-gradient-to-r from-[#0E2650] to-[#1F2D5C] px-6 py-5 text-white shadow-md">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/45">
+              Sakarya Üniversitesi · Öğrenci Dekanlığı
+            </p>
+            <h1 className="mt-1 text-xl font-bold">
+              {weekdayFormatter.format(today)}, {dateFormatter.format(today)}
+            </h1>
+            <p className="mt-0.5 text-sm text-white/60">2026-2027 Akademik Yılı</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <div className="rounded-xl border border-white/15 bg-white/10 px-3 py-2 text-center">
+              <p className="text-[10px] text-white/50">Bu Hafta</p>
+              <p className="text-sm font-semibold text-white">{getWeekRange(today)}</p>
+            </div>
+            {urgentCount > 0 && (
+              <div className="flex items-center gap-2 rounded-xl border border-red-400/40 bg-red-500/20 px-3 py-2">
+                <span className="h-2 w-2 rounded-full bg-red-400" />
+                <p className="text-sm font-semibold text-red-200">{urgentCount} acil takvim uyarısı</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* Ay seçici — 2026 ve 2027 grupları */}
+      <div className="space-y-2">
+        {/* 2026 öncesi geçmiş kayıtlar (varsa) */}
+        {monthKeys.filter((k) => k < "2026-09").length > 0 && (
+          <MonthGroup
+            label="Geçmiş"
+            keys={monthKeys.filter((k) => k < "2026-09").sort()}
+            selected={selectedMonth}
+            logs={logs}
+            onSelect={setSelectedMonth}
+            getLabel={getMonthLabel}
+          />
+        )}
+        {/* 2026: Eylül → Aralık */}
+        <MonthGroup
+          label="2026"
+          keys={["2026-09","2026-10","2026-11","2026-12"]}
+          selected={selectedMonth}
+          logs={logs}
+          onSelect={setSelectedMonth}
+          getLabel={getMonthLabel}
+        />
+        {/* 2027: Ocak → Ağustos */}
+        <MonthGroup
+          label="2027"
+          keys={["2027-01","2027-02","2027-03","2027-04","2027-05","2027-06","2027-07","2027-08"]}
+          selected={selectedMonth}
+          logs={logs}
+          onSelect={setSelectedMonth}
+          getLabel={getMonthLabel}
+        />
+      </div>
+
+      {/* Stat kartları */}
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <StatCard title="Yapılanlar" value={combined.yapilanlar?.length || 0} detail={`${getMonthLabel(selectedMonth)} · ${monthLogs.length} hafta`} accent="green" />
+        <StatCard title="Yapılacaklar" value={combined.yapilacaklar?.length || 0} detail="Planlanan maddeler" accent="navy" />
+        <StatCard title="Bekleyenler" value={combined.bekleyenler?.length || 0} detail="Geri dönüş bekleniyor" accent="orange" />
+        <StatCard title="Riskli Konular" value={combined.sorunlar?.length || 0} detail="Sorun / risk maddeleri" accent="red" />
+      </section>
+
+      {/* Madde listesi */}
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        {TYPES.map((t) => {
+          const items = combined[t.key] || [];
+          return (
+            <div key={t.key} className={`rounded-2xl border ${t.border} ${t.bg} p-4`}>
+              <div className="mb-3 flex items-center justify-between">
+                <h3 className={`text-sm font-bold ${t.text}`}>{t.label}</h3>
+                <span className={`rounded-full bg-white/70 px-2 py-0.5 text-[10px] font-semibold ${t.text}`}>{items.length}</span>
+              </div>
+              {items.length > 0 ? (
+                <ul className="space-y-1.5 max-h-64 overflow-y-auto pr-1">
+                  {items.map((item, i) => (
+                    <li key={i} className="rounded-lg bg-white/80 px-3 py-2 text-xs text-slate-700 leading-relaxed shadow-sm">
+                      <span className={`font-bold ${t.text} mr-1`}>{t.icon}</span>
+                      {item.text}
+                      <p className="mt-0.5 text-[10px] text-slate-400">{item.hafta}</p>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-xs text-slate-400 italic">
+                  {getMonthLabel(selectedMonth)} ayı için kayıt girilmemiş.
+                </p>
+              )}
+            </div>
+          );
+        })}
+      </section>
+
+      {/* Takvim uyarıları + Hızlı erişim */}
+      <section className="grid gap-4 xl:grid-cols-[1.5fr_0.5fr]">
+        <SectionCard title="Yaklaşan Takvim Uyarıları">
+          <div className="space-y-2">
+            {calendarAlerts.length > 0 ? (
+              calendarAlerts.slice(0, 6).map((event) => (
+                <div key={event.id} className="flex items-center gap-3 rounded-xl border border-[#E5E7EB] bg-slate-50 px-4 py-3">
+                  <AlertDot level={event.alert.level} />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-[#1F2D5C] truncate">{event.ad}</p>
+                    <p className="text-xs text-slate-500">{dateFormatter.format(new Date(event.baslangic))}</p>
+                  </div>
+                  <div className="shrink-0">
+                    <Badge tone={event.alert.tone}>{event.alert.label}</Badge>
+                    {event.alert.daysLeft > 0 && (
+                      <p className="mt-0.5 text-center text-[10px] text-slate-400">{event.alert.daysLeft} gün</p>
+                    )}
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p className="rounded-xl border border-dashed border-[#D6DEEA] bg-slate-50 px-4 py-5 text-sm text-slate-500">
+                Önümüzdeki 30 gün içinde takvim uyarısı yok.
+              </p>
+            )}
+            {calendarAlerts.length > 6 && (
+              <Link to="/akademik-takvim" className="block rounded-xl border border-dashed border-[#D6DEEA] py-2 text-center text-xs text-[#00377B] hover:bg-[#EEF3FA]">
+                +{calendarAlerts.length - 6} uyarı daha →
+              </Link>
+            )}
+          </div>
+        </SectionCard>
+
+        <SectionCard title="Hızlı Erişim">
+          <div className="grid gap-2">
+            {[
+              { to: "/haftalik-faaliyetler", label: "Haftalık Kayıt Ekle" },
+              { to: "/akademik-takvim", label: "Akademik Takvim" },
+              { to: "/operasyon-takip", label: "Yapılan İşler Takibi" },
+              { to: "/sunum-hazirla", label: "Sunum Hazırla" },
+              { to: "/evraklar", label: "Evrak ve Şablonlar" },
+            ].map((link) => (
+              <Link
+                key={link.to}
+                to={link.to}
+                className="flex items-center justify-between rounded-xl border border-[#D6DEEA] bg-[#F8FAFD] px-4 py-3 text-sm font-medium text-[#1F2D5C] transition hover:border-[#00377B] hover:bg-white"
+              >
+                {link.label}
+                <span className="text-slate-400">›</span>
+              </Link>
+            ))}
+          </div>
+        </SectionCard>
+      </section>
+    </div>
+  );
+}
+
+function AlertDot({ level }) {
+  const colors = { kritik: "bg-red-500", dikkat: "bg-amber-500", bilgi: "bg-blue-400", devam: "bg-emerald-500" };
+  return <span className={`h-2 w-2 shrink-0 rounded-full ${colors[level] || "bg-slate-300"}`} />;
+}
+
+function MonthGroup({ label, keys, selected, logs, onSelect, getLabel }) {
+  return (
+    <div className="flex items-center gap-2">
+      <span className="shrink-0 rounded-lg bg-[#1F2D5C] px-2.5 py-1.5 text-[11px] font-bold text-white tracking-wider">
+        {label}
+      </span>
+      <div className="overflow-x-auto pb-0.5">
+        <div className="flex gap-1.5 min-w-max">
+          {keys.map((key) => {
+            const hasData = logs.some((l) => getMonthKey(l.haftaBaslangic) === key);
+            const isSelected = selected === key;
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => onSelect(key)}
+                className={`relative rounded-xl px-3 py-2 text-xs font-semibold transition whitespace-nowrap ${
+                  isSelected
+                    ? "bg-[#00377B] text-white shadow-sm"
+                    : hasData
+                    ? "border border-[#F58220] bg-[#FFF7F1] text-[#A34D00] hover:border-[#00377B] hover:bg-white hover:text-[#1F2D5C]"
+                    : "border border-[#D6DEEA] bg-white text-slate-400 hover:border-[#00377B] hover:text-[#1F2D5C]"
+                }`}
+              >
+                {getLabel(key)}
+                {hasData && !isSelected && (
+                  <span className="absolute -top-0.5 -right-0.5 h-1.5 w-1.5 rounded-full bg-[#F58220] border border-white" />
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default Dashboard;

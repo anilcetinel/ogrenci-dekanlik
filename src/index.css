@@ -1,0 +1,64 @@
+@import "tailwindcss";
+
+:root {
+  color: #14213d;
+  background: #f5f7fa;
+  font-family:
+    "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  background:
+    radial-gradient(circle at top right, rgba(245, 130, 32, 0.1), transparent 22%),
+    linear-gradient(180deg, #eef3f9 0%, #f5f7fa 16%, #f5f7fa 100%);
+}
+
+#root {
+  min-height: 100vh;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.institutional-shadow {
+  box-shadow: 0 10px 30px rgba(17, 37, 74, 0.08);
+}
+
+.grid-autofit {
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+@media print {
+  aside,
+  header,
+  footer,
+  .print\:hidden {
+    display: none !important;
+  }
+
+  body {
+    background: white !important;
+    font-size: 12px;
+  }
+
+  main {
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .md\:pl-\[260px\] {
+    padding-left: 0 !important;
+  }
+
+  .institutional-shadow {
+    box-shadow: none !important;
+  }
+
+  article {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}

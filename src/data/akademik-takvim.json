@@ -1,0 +1,102 @@
+[
+  {
+    "id": 1,
+    "ad": "Yaz Okulu Ders Kayıtları",
+    "baslangic": "2026-06-08",
+    "bitis": "2026-06-12",
+    "kategori": "Kayıt",
+    "donem": "2025-2026 Yaz",
+    "kritiklik": "yüksek",
+    "operasyonIds": [8]
+  },
+  {
+    "id": 2,
+    "ad": "Mazeretli Derse Yazılma Başvuruları",
+    "baslangic": "2026-06-15",
+    "bitis": "2026-06-18",
+    "kategori": "Başvuru",
+    "donem": "2025-2026 Yaz",
+    "kritiklik": "orta",
+    "operasyonIds": [4]
+  },
+  {
+    "id": 3,
+    "ad": "Ara Sınavlar",
+    "baslangic": "2026-10-19",
+    "bitis": "2026-10-30",
+    "kategori": "Sınav",
+    "donem": "2026-2027 Güz",
+    "kritiklik": "yüksek",
+    "operasyonIds": [2, 3]
+  },
+  {
+    "id": 4,
+    "ad": "Final Sınavları",
+    "baslangic": "2026-12-28",
+    "bitis": "2027-01-08",
+    "kategori": "Sınav",
+    "donem": "2026-2027 Güz",
+    "kritiklik": "yüksek",
+    "operasyonIds": [1, 3]
+  },
+  {
+    "id": 5,
+    "ad": "Bütünleme Sınavları",
+    "baslangic": "2027-01-25",
+    "bitis": "2027-01-29",
+    "kategori": "Sınav",
+    "donem": "2026-2027 Güz",
+    "kritiklik": "orta",
+    "operasyonIds": [1, 3]
+  },
+  {
+    "id": 6,
+    "ad": "Muafiyet Başvuruları",
+    "baslangic": "2026-09-07",
+    "bitis": "2026-09-11",
+    "kategori": "Başvuru",
+    "donem": "2026-2027 Güz",
+    "kritiklik": "orta",
+    "operasyonIds": [5]
+  },
+  {
+    "id": 7,
+    "ad": "Muafiyet Sınavları",
+    "baslangic": "2026-09-16",
+    "bitis": "2026-09-18",
+    "kategori": "Sınav",
+    "donem": "2026-2027 Güz",
+    "kritiklik": "orta",
+    "operasyonIds": [5]
+  },
+  {
+    "id": 8,
+    "ad": "Mezuniyet İşlemleri Son Kontrol",
+    "baslangic": "2026-06-24",
+    "bitis": "2026-06-26",
+    "kategori": "Mezuniyet",
+    "donem": "2025-2026 Bahar",
+    "kritiklik": "yüksek",
+    "operasyonIds": [7]
+  },
+  {
+    "id": 9,
+    "ad": "ÇAP / Yandal Başvuruları",
+    "baslangic": "2026-08-24",
+    "bitis": "2026-08-28",
+    "kategori": "Başvuru",
+    "donem": "2026-2027 Güz",
+    "kritiklik": "düşük",
+    "operasyonIds": [6]
+  },
+  {
+    "id": 10,
+    "ad": "Derslerin Başlaması",
+    "baslangic": "2026-09-21",
+    "bitis": "2026-09-21",
+    "kategori": "Akademik Başlangıç",
+    "donem": "2026-2027 Güz",
+    "kritiklik": "yüksek",
+    "operasyonIds": [4, 8]
+  }
+]
