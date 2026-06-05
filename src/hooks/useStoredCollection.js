@@ -1,8 +1,18 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { mergeDemoAndStored, readStoredCollection, writeStoredCollection } from "../utils/storage";
+import {
+  clearSharedCollection,
+  deleteSharedRecord,
+  fetchSharedRecords,
+  isSharedStorageEnabled,
+  upsertSharedRecords,
+} from "../utils/sharedStorage";
 
 function useStoredCollection(storageKey, demoRecords, options = {}) {
   const { sortByDateField } = options;
+  const [syncStatus, setSyncStatus] = useState(
+    isSharedStorageEnabled() ? "ortak-veri-baglaniyor" : "yerel",
+  );
   const [storedRecords, setStoredRecords] = useState(() => {
     if (typeof window === "undefined") {
       return [];
@@ -10,6 +20,35 @@ function useStoredCollection(storageKey, demoRecords, options = {}) {
 
     return readStoredCollection(storageKey);
   });
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadSharedRecords() {
+      if (!isSharedStorageEnabled()) {
+        setSyncStatus("yerel");
+        return;
+      }
+
+      try {
+        setSyncStatus("ortak-veri-baglaniyor");
+        const sharedRecords = await fetchSharedRecords(storageKey);
+        if (cancelled) return;
+        setStoredRecords(sharedRecords);
+        writeStoredCollection(storageKey, sharedRecords);
+        setSyncStatus("ortak-veri-aktif");
+      } catch (error) {
+        console.warn("Ortak veri okunamadı, yerel kayıtlar kullanılacak:", storageKey, error);
+        if (!cancelled) setSyncStatus("ortak-veri-hatasi");
+      }
+    }
+
+    loadSharedRecords();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [storageKey]);
 
   const records = useMemo(() => {
     const merged = mergeDemoAndStored(demoRecords, storedRecords);
@@ -23,16 +62,28 @@ function useStoredCollection(storageKey, demoRecords, options = {}) {
     );
   }, [demoRecords, sortByDateField, storedRecords]);
 
-  const addRecord = (record) => {
-    const nextRecords = [...storedRecords, record];
+  const persistRecords = (nextRecords, recordsToSync = nextRecords) => {
     setStoredRecords(nextRecords);
     writeStoredCollection(storageKey, nextRecords);
+
+    if (!isSharedStorageEnabled() || recordsToSync.length === 0) {
+      return;
+    }
+
+    upsertSharedRecords(storageKey, recordsToSync).catch((error) => {
+      console.warn("Ortak veri yazılamadı:", storageKey, error);
+      setSyncStatus("ortak-veri-hatasi");
+    });
+  };
+
+  const addRecord = (record) => {
+    const nextRecords = [...storedRecords, record];
+    persistRecords(nextRecords, [record]);
   };
 
   const addRecords = (newRecords) => {
     const nextRecords = [...storedRecords, ...newRecords];
-    setStoredRecords(nextRecords);
-    writeStoredCollection(storageKey, nextRecords);
+    persistRecords(nextRecords, newRecords);
   };
 
   const upsertRecords = (newRecords, getKey) => {
@@ -49,8 +100,7 @@ function useStoredCollection(storageKey, demoRecords, options = {}) {
     });
 
     const nextRecords = Array.from(nextRecordsByKey.values());
-    setStoredRecords(nextRecords);
-    writeStoredCollection(storageKey, nextRecords);
+    persistRecords(nextRecords, newRecords);
   };
 
   const mergeRecord = (record, getKey, mergeFn) => {
@@ -74,22 +124,41 @@ function useStoredCollection(storageKey, demoRecords, options = {}) {
       nextRecords.push(nextRecord);
     }
 
-    setStoredRecords(nextRecords);
-    writeStoredCollection(storageKey, nextRecords);
+    persistRecords(nextRecords, [nextRecord]);
   };
 
   const clearRecords = () => {
-    setStoredRecords([]);
-    writeStoredCollection(storageKey, []);
+    persistRecords([], []);
+    if (isSharedStorageEnabled()) {
+      clearSharedCollection(storageKey).catch((error) => {
+        console.warn("Ortak veri koleksiyonu temizlenemedi:", storageKey, error);
+        setSyncStatus("ortak-veri-hatasi");
+      });
+    }
   };
 
   const deleteRecord = (recordId) => {
     const nextRecords = storedRecords.filter((record) => String(record.id) !== String(recordId));
-    setStoredRecords(nextRecords);
-    writeStoredCollection(storageKey, nextRecords);
+    persistRecords(nextRecords, []);
+    if (isSharedStorageEnabled()) {
+      deleteSharedRecord(storageKey, recordId).catch((error) => {
+        console.warn("Ortak veriden kayıt silinemedi:", storageKey, error);
+        setSyncStatus("ortak-veri-hatasi");
+      });
+    }
   };
 
-  return { records, storedRecords, addRecord, addRecords, upsertRecords, mergeRecord, deleteRecord, clearRecords };
+  return {
+    records,
+    storedRecords,
+    syncStatus,
+    addRecord,
+    addRecords,
+    upsertRecords,
+    mergeRecord,
+    deleteRecord,
+    clearRecords,
+  };
 }
 
 export default useStoredCollection;

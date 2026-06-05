@@ -1,9 +1,12 @@
 import { useState } from "react";
+import { getSharedStorageInfo, isSharedStorageEnabled, upsertSharedRecords } from "../utils/sharedStorage";
+import { readStoredCollection } from "../utils/storage";
 
 const COLLECTIONS = [
   { key: "akademikTakvimRecords", label: "Akademik Takvim" },
   { key: "haftalikLogRecords",    label: "Haftalık Faaliyetler" },
   { key: "operasyonRecords",      label: "Operasyonlar" },
+  { key: "evrakRecords",          label: "Evrak ve Şablonlar" },
   { key: "hizliNotRecords",       label: "Hızlı Notlar" },
 ];
 
@@ -14,8 +17,35 @@ function getCount(key) {
 function Ayarlar() {
   const [importStatus, setImportStatus] = useState("");
   const [counts, setCounts] = useState(() => Object.fromEntries(COLLECTIONS.map((c) => [c.key, getCount(c.key)])));
+  const [syncing, setSyncing] = useState(false);
+  const sharedStorageInfo = getSharedStorageInfo();
 
   const refreshCounts = () => setCounts(Object.fromEntries(COLLECTIONS.map((c) => [c.key, getCount(c.key)])));
+
+  const handleSyncToSharedStorage = async () => {
+    if (!isSharedStorageEnabled()) {
+      setImportStatus("error:Supabase bağlantısı tanımlı değil. VITE_SUPABASE_URL ve VITE_SUPABASE_ANON_KEY ayarları gerekir.");
+      return;
+    }
+
+    setSyncing(true);
+    try {
+      let totalSynced = 0;
+      for (const { key } of COLLECTIONS) {
+        const records = readStoredCollection(key);
+        if (records.length > 0) {
+          await upsertSharedRecords(key, records);
+          totalSynced += records.length;
+        }
+      }
+      setImportStatus(`success:${totalSynced} yerel kayıt ortak veri alanına aktarıldı.`);
+    } catch (error) {
+      console.error(error);
+      setImportStatus("error:Ortak veri alanına aktarım başarısız oldu. Supabase tablo ve izinlerini kontrol edin.");
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   const handleExport = () => {
     const data = { _exportDate: new Date().toISOString(), _version: "1.0" };
@@ -109,7 +139,47 @@ function Ayarlar() {
             </div>
           ))}
         </div>
-        <p className="mt-3 text-right text-xs text-slate-400">Toplam {totalRecords} kayıt · Tarayıcı yerel depolaması</p>
+        <p className="mt-3 text-right text-xs text-slate-400">
+          Toplam {totalRecords} kayıt · {sharedStorageInfo.enabled ? "Ortak veri + yerel yedek" : "Tarayıcı yerel depolaması"}
+        </p>
+      </div>
+
+      {/* Ortak veri */}
+      <div className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h3 className="mb-1 text-sm font-bold text-[#1F2D5C]">Ortak Veri Alanı</h3>
+            <p className="text-xs leading-5 text-slate-500">
+              Supabase tanımlanınca kayıtlar herkesin görebileceği ortak tabloya yazılır.
+            </p>
+          </div>
+          <span className={`w-fit rounded-full px-3 py-1 text-xs font-bold ${
+            sharedStorageInfo.enabled
+              ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200"
+              : "bg-slate-100 text-slate-500 ring-1 ring-slate-200"
+          }`}>
+            {sharedStorageInfo.enabled ? "Bağlantı tanımlı" : "Yerel mod"}
+          </span>
+        </div>
+
+        {sharedStorageInfo.enabled ? (
+          <div className="mt-4 rounded-xl border border-[#D6DEEA] bg-[#F8FAFD] px-4 py-3 text-xs leading-5 text-slate-600">
+            Tablo: <strong>{sharedStorageInfo.tableName}</strong>
+          </div>
+        ) : (
+          <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-5 text-amber-800">
+            Ortak kullanım için `.env` dosyasında `VITE_SUPABASE_URL` ve `VITE_SUPABASE_ANON_KEY` tanımlanmalı.
+          </div>
+        )}
+
+        <button
+          type="button"
+          onClick={handleSyncToSharedStorage}
+          disabled={!sharedStorageInfo.enabled || syncing || totalRecords === 0}
+          className="mt-4 rounded-xl bg-[#00377B] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#1F2D5C] disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          {syncing ? "Aktarılıyor..." : "Yerel Verileri Ortak Alana Aktar"}
+        </button>
       </div>
 
       {/* Yedekleme */}
