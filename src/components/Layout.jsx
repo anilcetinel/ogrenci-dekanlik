@@ -12,6 +12,7 @@ const titles = {
   "/is-nasil-yapilir": "İş Nasıl Yapılır",
   "/evraklar": "Evrak ve Şablonlar",
   "/sunum-hazirla": "Sunum Hazırla",
+  "/ayarlar": "Ayarlar & Veri Yönetimi",
 };
 
 function Layout() {

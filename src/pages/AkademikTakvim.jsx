@@ -274,29 +274,32 @@ function isLikelySectionHeader(value) {
   const text = String(value || "").trim();
   const normalized = normalizeText(text);
 
-  if (!text || text.length < 8 || parseDateRange(text)) {
-    return false;
-  }
+  // Boş, çok kısa veya tarih içeriyorsa section header değil
+  if (!text || text.length < 4 || parseDateRange(text)) return false;
 
-  if (
-    normalized.includes("sakarya üniversitesi") ||
-    normalized.includes("akademik takvimi") ||
-    normalized.includes("ögr.") ||
-    normalized.includes("öğr.") ||
-    normalized.startsWith("t.c.") ||
-    normalized.startsWith("(*)") ||
-    normalized.startsWith("(**)") ||
-    normalized.includes("güz yarıyılı") ||
-    normalized.includes("bahar yarıyılı") ||
-    normalized.includes("yaz okulu dönemi") ||
-    normalized.includes("yarıyılı takvimi") ||
-    normalized.includes("akademik yılı") ||
-    /^\d+$/.test(normalized)
-  ) {
-    return false;
-  }
+  // Kesinlikle section header olmayan kalıplar
+  const notHeaders = [
+    "sakarya üniversitesi", "akademik takvimi", "ögr.", "öğr.",
+    "güz yarıyılı", "bahar yarıyılı", "yaz okulu dönemi",
+    "yarıyılı takvimi", "akademik yılı",
+  ];
+  if (notHeaders.some((h) => normalized.includes(h))) return false;
+  if (normalized.startsWith("t.c.") || normalized.startsWith("(*")) return false;
+  if (/^\d+$/.test(normalized)) return false;
 
-  return true;
+  // Section header olduğuna dair pozitif işaretler
+  const sectionKeywords = [
+    "dönem", "yarıyıl", "yıl", "takvim", "program", "bölüm",
+    "fakülte", "enstitü", "okul", "güz", "bahar", "yaz dönemi",
+  ];
+  if (sectionKeywords.some((k) => normalized.includes(k))) return true;
+
+  // Tamamen büyük harf yazılmışsa (Türkçe) — kurumsal başlık
+  if (text.length > 4 && text === text.toLocaleUpperCase("tr-TR")) return true;
+
+  // Belirsizse section header SAYMA.
+  // Tarihsiz satır zaten event olarak import edilmez (baslangic boş → null döner).
+  return false;
 }
 
 function isAcademicPeriodTitle(value) {
@@ -431,6 +434,7 @@ function AkademikTakvim() {
   const [viewMode, setViewMode] = useState("Yıllık");
   const [selectedMonth, setSelectedMonth] = useState(() => new Date(2026, 8, 1));
   const [modalOpen, setModalOpen] = useState(false);
+  const [editingEventId, setEditingEventId] = useState(null);
   const [formData, setFormData] = useState(emptyForm);
   const [formError, setFormError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
@@ -633,6 +637,22 @@ function AkademikTakvim() {
     setSuccessMessage("Akademik takvim olayları kaydedildi.");
   };
 
+  const openEditModal = (event) => {
+    setEditingEventId(event.id);
+    setFormData({
+      ad: event.ad || "",
+      baslangic: event.baslangic || "",
+      bitis: event.bitis || "",
+      kategori: event.kategori || "",
+      donem: event.donem || "",
+      kritiklik: event.kritiklik || "orta",
+      durum: event.durum || "Planlandı",
+      aciklama: event.aciklama || "",
+      operasyonIds: event.operasyonIds || [],
+    });
+    setModalOpen(true);
+  };
+
   const handleSubmit = (event) => {
     event.preventDefault();
     setFormError("");
@@ -647,13 +667,16 @@ function AkademikTakvim() {
       return;
     }
 
-    addRecord({
-      id: `user-${Date.now()}`,
-      ...formData,
-    });
+    if (editingEventId) {
+      upsertRecords([{ ...formData, id: editingEventId }], (r) => r.id);
+      setSuccessMessage("Akademik olay güncellendi.");
+    } else {
+      addRecord({ id: `user-${Date.now()}`, ...formData });
+      setSuccessMessage("Akademik olay eklendi.");
+    }
     setFormData(emptyForm);
+    setEditingEventId(null);
     setModalOpen(false);
-    setSuccessMessage("Akademik olay eklendi.");
   };
 
   // Aylık görünüm için seçili ayın günlerini yeniden hesapla
@@ -852,6 +875,7 @@ function AkademikTakvim() {
                 <th className="px-4 py-3 text-left">Tarih Aralığı</th>
                 <th className="px-4 py-3 text-left">Kategori</th>
                 <th className="px-4 py-3 text-left">Durum</th>
+                <th className="px-4 py-3 text-left"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#EEF2F7]">
@@ -883,6 +907,12 @@ function AkademikTakvim() {
                       <td className="px-4 py-3">
                         <Badge tone={alert.tone}>{alert.label}</Badge>
                       </td>
+                      <td className="px-4 py-3">
+                        <button type="button" onClick={() => openEditModal(item)}
+                          className="rounded-lg border border-[#D6DEEA] px-2.5 py-1 text-xs font-medium text-[#1F2D5C] hover:border-[#00377B] hover:text-[#00377B]">
+                          Düzenle
+                        </button>
+                      </td>
                     </tr>
                   );
                 })}
@@ -893,7 +923,12 @@ function AkademikTakvim() {
 
       {/* Olay ekleme modalı */}
       {modalOpen && (
-        <FormModal title="Akademik Olay Ekle" onClose={() => setModalOpen(false)} onSubmit={handleSubmit} error={formError}>
+        <FormModal
+          title={editingEventId ? "Akademik Olay Düzenle" : "Akademik Olay Ekle"}
+          onClose={() => { setModalOpen(false); setEditingEventId(null); setFormData(emptyForm); }}
+          onSubmit={handleSubmit}
+          error={formError}
+        >
           <div className="grid gap-4 md:grid-cols-2">
             <label className="space-y-2 text-sm text-slate-600 md:col-span-2">
               <span>Olay adı</span>
@@ -969,10 +1004,12 @@ function AkademikTakvim() {
             </div>
           </div>
           <div className="flex justify-end gap-3 pt-2">
-            <button type="button" onClick={() => setModalOpen(false)}
+            <button type="button" onClick={() => { setModalOpen(false); setEditingEventId(null); setFormData(emptyForm); }}
               className="rounded-xl border border-[#D6DEEA] px-4 py-3 text-sm font-medium text-slate-600">Vazgeç</button>
             <button type="submit"
-              className="rounded-xl bg-[#00377B] px-4 py-3 text-sm font-medium text-white">Kaydet</button>
+              className="rounded-xl bg-[#00377B] px-4 py-3 text-sm font-medium text-white">
+              {editingEventId ? "Güncelle" : "Kaydet"}
+            </button>
           </div>
         </FormModal>
       )}

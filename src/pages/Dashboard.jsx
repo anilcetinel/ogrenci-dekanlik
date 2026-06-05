@@ -14,6 +14,14 @@ const shortDateFormatter = new Intl.DateTimeFormat("tr-TR", { day: "2-digit", mo
 const monthFmt = new Intl.DateTimeFormat("tr-TR", { month: "long", year: "numeric" });
 const weekdayFormatter = new Intl.DateTimeFormat("tr-TR", { weekday: "long" });
 
+function weekStart(date) {
+  const d = new Date(date);
+  const day = d.getDay() || 7;
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() - day + 1);
+  return d;
+}
+
 function getWeekRange(date) {
   const d = new Date(date);
   const day = d.getDay() || 7;
@@ -32,7 +40,6 @@ const TYPES = [
   { key: "yapilanlar",   label: "Yapılanlar",   icon: "✓", bg: "bg-emerald-50",  text: "text-[#1F4D2C]", border: "border-emerald-200" },
   { key: "yapilacaklar", label: "Yapılacaklar",  icon: "→", bg: "bg-blue-50",     text: "text-[#00377B]", border: "border-blue-200"    },
   { key: "bekleyenler",  label: "Bekleyenler",   icon: "⏳", bg: "bg-amber-50",   text: "text-[#A34D00]", border: "border-amber-200"   },
-  { key: "sorunlar",     label: "Riskler",       icon: "!", bg: "bg-red-50",      text: "text-red-700",   border: "border-red-200"     },
 ];
 
 function Dashboard() {
@@ -91,6 +98,12 @@ function Dashboard() {
 
   const urgentCount = calendarAlerts.filter((e) => ["kritik", "dikkat"].includes(e.alert.level)).length;
 
+  // Bu haftanın kaydı
+  const thisWeekLog = useMemo(() => {
+    const ws = weekStart(today);
+    return logs.find((l) => weekStart(new Date(l.haftaBaslangic)).getTime() === ws.getTime()) || null;
+  }, [logs]);
+
   const getMonthLabel = (key) => {
     const [y, m] = key.split("-");
     return monthFmt.format(new Date(Number(y), Number(m) - 1, 1));
@@ -123,6 +136,46 @@ function Dashboard() {
               </div>
             )}
           </div>
+        </div>
+      </section>
+
+      {/* Bu haftanın özet kartı */}
+      <section className={`rounded-2xl border p-4 ${thisWeekLog ? "border-emerald-200 bg-[#EEF7F0]" : "border-dashed border-[#D6DEEA] bg-white"}`}>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Bu Hafta</p>
+            <p className="mt-0.5 text-sm font-semibold text-[#1F2D5C]">{getWeekRange(today)}</p>
+          </div>
+          {thisWeekLog ? (
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex gap-4 text-sm">
+                <span className="flex items-center gap-1.5 font-semibold text-[#1F4D2C]">
+                  <span className="h-2 w-2 rounded-full bg-[#1F4D2C]" />
+                  {thisWeekLog.yapilanlar?.length || 0} yapıldı
+                </span>
+                <span className="flex items-center gap-1.5 font-semibold text-[#00377B]">
+                  <span className="h-2 w-2 rounded-full bg-[#00377B]" />
+                  {thisWeekLog.yapilacaklar?.length || 0} planlı
+                </span>
+                <span className="flex items-center gap-1.5 font-semibold text-[#A34D00]">
+                  <span className="h-2 w-2 rounded-full bg-[#F58220]" />
+                  {thisWeekLog.bekleyenler?.length || 0} bekliyor
+                </span>
+              </div>
+              <Link to="/haftalik-faaliyetler"
+                className="rounded-xl border border-emerald-300 bg-white px-3 py-1.5 text-xs font-semibold text-[#1F4D2C] hover:bg-emerald-50">
+                Haftayı Görüntüle →
+              </Link>
+            </div>
+          ) : (
+            <div className="flex items-center gap-3">
+              <p className="text-sm text-slate-400">Bu hafta için henüz kayıt girilmemiş.</p>
+              <Link to="/haftalik-faaliyetler"
+                className="rounded-xl bg-[#00377B] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#1F2D5C]">
+                + Haftalık Kayıt Ekle
+              </Link>
+            </div>
+          )}
         </div>
       </section>
 
@@ -160,15 +213,14 @@ function Dashboard() {
       </div>
 
       {/* Stat kartları */}
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <section className="grid gap-4 md:grid-cols-3">
         <StatCard title="Yapılanlar" value={combined.yapilanlar?.length || 0} detail={`${getMonthLabel(selectedMonth)} · ${monthLogs.length} hafta`} accent="green" />
         <StatCard title="Yapılacaklar" value={combined.yapilacaklar?.length || 0} detail="Planlanan maddeler" accent="navy" />
         <StatCard title="Bekleyenler" value={combined.bekleyenler?.length || 0} detail="Geri dönüş bekleniyor" accent="orange" />
-        <StatCard title="Riskli Konular" value={combined.sorunlar?.length || 0} detail="Sorun / risk maddeleri" accent="red" />
       </section>
 
       {/* Madde listesi */}
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <section className="grid gap-4 md:grid-cols-3">
         {TYPES.map((t) => {
           const items = combined[t.key] || [];
           return (
@@ -233,12 +285,10 @@ function Dashboard() {
         <SectionCard title="Hızlı Erişim">
           <div className="grid gap-2">
             {[
-              { to: "/hizli-not", label: "Hızlı Not Girişi" },
               { to: "/haftalik-faaliyetler", label: "Haftalık Kayıt Ekle" },
               { to: "/akademik-takvim", label: "Akademik Takvim" },
               { to: "/operasyon-takip", label: "Yapılan İşler Takibi" },
               { to: "/sunum-hazirla", label: "Sunum Hazırla" },
-              { to: "/evraklar", label: "Evrak ve Şablonlar" },
             ].map((link) => (
               <Link
                 key={link.to}

@@ -61,18 +61,6 @@ const navItems = [
       </svg>
     ),
   },
-  {
-    to: "/evraklar",
-    label: "Evrak ve Şablonlar",
-    icon: (
-      <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
-        <path d="M14 2v6h6" />
-        <line x1="8" y1="13" x2="16" y2="13" />
-        <line x1="8" y1="17" x2="14" y2="17" />
-      </svg>
-    ),
-  },
 ];
 
 function Sidebar({ mobileOpen, onClose }) {
@@ -125,7 +113,22 @@ function Sidebar({ mobileOpen, onClose }) {
         </nav>
 
         {/* Alt footer */}
-        <div className="border-t border-white/10 px-4 py-3">
+        <div className="border-t border-white/10 px-4 py-3 space-y-0.5">
+          <NavLink
+            to="/ayarlar"
+            onClick={onClose}
+            className={({ isActive }) =>
+              `flex items-center gap-2 rounded-lg px-2 py-1.5 text-[11px] transition ${
+                isActive ? "bg-white/10 text-white/70" : "text-white/25 hover:text-white/50"
+              }`
+            }
+          >
+            <svg className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="3" />
+              <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" />
+            </svg>
+            Ayarlar & Yedekleme
+          </NavLink>
           <NavLink
             to="/is-nasil-yapilir"
             onClick={onClose}

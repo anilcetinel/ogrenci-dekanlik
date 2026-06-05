@@ -54,22 +54,30 @@ function getWeekKey(date) {
   return weekStart(date).toISOString().slice(0, 10);
 }
 
-const emptyForm = {
-  haftaBaslangic: "",
-  haftaBitis: "",
-  yapilanlar: "",
-  yapilacaklar: "",
-  bekleyenler: "",
-  sorunlar: "",
-  hazirlayan: "",
-  operasyonIds: [],
-};
+const SISTEM_BASLANGIC = new Date(2026, 5, 8); // 8 Haziran 2026 (Pazartesi)
+
+function defaultEmptyForm() {
+  // Bugün başlangıç tarihinden önceyse ilk haftayı kullan, değilse bu haftayı kullan
+  const bugun = new Date();
+  const baslangic = bugun >= SISTEM_BASLANGIC ? weekStart(bugun) : new Date(SISTEM_BASLANGIC);
+  const bitis = new Date(baslangic);
+  bitis.setDate(baslangic.getDate() + 6);
+  return {
+    haftaBaslangic: baslangic.toISOString().slice(0, 10),
+    haftaBitis: bitis.toISOString().slice(0, 10),
+    yapilanlar: "",
+    yapilacaklar: "",
+    bekleyenler: "",
+    sorunlar: "",
+    hazirlayan: "",
+    operasyonIds: [],
+  };
+}
 
 const boardCols = [
   { key: "yapilanlar", label: "Yapılanlar", bg: "bg-[#EEF7F0]", text: "text-[#1F4D2C]", dot: "bg-[#1F4D2C]", icon: "✓" },
   { key: "yapilacaklar", label: "Yapılacaklar", bg: "bg-[#EEF3FA]", text: "text-[#00377B]", dot: "bg-[#00377B]", icon: "→" },
   { key: "bekleyenler", label: "Bekleyenler", bg: "bg-[#FFF3E8]", text: "text-[#A34D00]", dot: "bg-[#F58220]", icon: "⏳" },
-  { key: "sorunlar", label: "Sorunlar / Riskler", bg: "bg-red-50", text: "text-red-700", dot: "bg-red-600", icon: "!" },
 ];
 
 function HaftalikFaaliyetler() {
@@ -79,16 +87,21 @@ function HaftalikFaaliyetler() {
   });
   const { records: operations } = useStoredCollection("operasyonRecords", operasyonData);
 
-  // Takvim başlangıcı: Haziran 2026'dan itibaren gezinebilir, bugün veya en son kayıt
-  const defaultMonth = useMemo(() => {
+  // Takvim başlangıcı: 8 Haziran 2026 veya en son kayıtlı hafta
+  const defaultDate = useMemo(() => {
     if (logs.length > 0) return new Date(logs[0].haftaBaslangic);
-    return new Date();
+    const bugun = new Date();
+    return bugun >= SISTEM_BASLANGIC ? bugun : new Date(SISTEM_BASLANGIC);
   }, [logs]);
 
-  const [currentMonth, setCurrentMonth] = useState(() => new Date(defaultMonth.getFullYear(), defaultMonth.getMonth(), 1));
-  const [selectedDate, setSelectedDate] = useState(() => new Date(defaultMonth));
+  const [currentMonth, setCurrentMonth] = useState(() => new Date(defaultDate.getFullYear(), defaultDate.getMonth(), 1));
+  const [selectedDate, setSelectedDate] = useState(() => {
+    // 8 Haziran'ın haftasını seç (Pzt 8 Haz)
+    return logs.length > 0 ? new Date(logs[0].haftaBaslangic) : new Date(SISTEM_BASLANGIC);
+  });
   const [modalOpen, setModalOpen] = useState(false);
-  const [formData, setFormData] = useState(emptyForm);
+  const [formData, setFormData] = useState(defaultEmptyForm);
+  const [editingItem, setEditingItem] = useState(null); // { colKey, index, text }
   const [formError, setFormError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
 
@@ -185,7 +198,7 @@ function HaftalikFaaliyetler() {
     setSelectedDate(ws);
     setCurrentMonth(new Date(ws.getFullYear(), ws.getMonth(), 1));
     setModalOpen(false);
-    setFormData(emptyForm);
+    setFormData(defaultEmptyForm());
     setSuccessMessage("Haftalık kayıt eklendi. Aynı haftadaki eski maddeler korundu.");
   };
 
@@ -193,11 +206,30 @@ function HaftalikFaaliyetler() {
 
   const handleDeleteSelectedLog = () => {
     if (!selectedLog) return;
-
     if (window.confirm(`"${selectedLog.haftaLabel}" haftalık kaydı silinsin mi?`)) {
       deleteRecord(selectedLog.id);
       setSuccessMessage("Haftalık faaliyet kaydı silindi.");
     }
+  };
+
+  // Belirli bir maddeyi sil
+  const handleDeleteItem = (colKey, index) => {
+    if (!selectedLog) return;
+    const updated = {
+      ...selectedLog,
+      [colKey]: (selectedLog[colKey] || []).filter((_, i) => i !== index),
+    };
+    mergeRecord(updated, (r) => getWeekKey(r.haftaBaslangic), (_, inc) => inc);
+  };
+
+  // Belirli bir maddeyi kaydet (düzenleme sonrası)
+  const handleSaveItem = (colKey, index, newText) => {
+    if (!selectedLog || !newText.trim()) return;
+    const arr = [...(selectedLog[colKey] || [])];
+    arr[index] = newText.trim();
+    const updated = { ...selectedLog, [colKey]: arr };
+    mergeRecord(updated, (r) => getWeekKey(r.haftaBaslangic), (_, inc) => inc);
+    setEditingItem(null);
   };
 
   const ws = weekStart(selectedDate);
@@ -310,10 +342,28 @@ function HaftalikFaaliyetler() {
 
           <button
             type="button"
-            onClick={() => setModalOpen(true)}
+            onClick={() => {
+              if (selectedLog) {
+                // Mevcut haftanın verilerini forma doldur
+                setFormData({
+                  haftaBaslangic: selectedLog.haftaBaslangic,
+                  haftaBitis: selectedLog.haftaBitis || "",
+                  yapilanlar: (selectedLog.yapilanlar || []).join("\n"),
+                  yapilacaklar: (selectedLog.yapilacaklar || []).join("\n"),
+                  bekleyenler: (selectedLog.bekleyenler || []).join("\n"),
+                  sorunlar: (selectedLog.sorunlar || []).join("\n"),
+                  hazirlayan: selectedLog.hazirlayan || "",
+                  operasyonIds: selectedLog.operasyonIds || [],
+                });
+              } else {
+                const f = defaultEmptyForm();
+                setFormData({ ...f, haftaBaslangic: ws.toISOString().slice(0, 10) });
+              }
+              setModalOpen(true);
+            }}
             className="w-full rounded-xl bg-[#00377B] py-2.5 text-sm font-medium text-white transition hover:bg-[#1F2D5C]"
           >
-            + Yeni Haftalık Kayıt
+            {selectedLog ? "✎ Haftayı Düzenle" : "+ Yeni Haftalık Kayıt"}
           </button>
 
           <button
@@ -360,8 +410,8 @@ function HaftalikFaaliyetler() {
                 </div>
               </div>
 
-              {/* 4 sütun pano */}
-              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              {/* 3 sütun pano */}
+              <div className="grid gap-4 md:grid-cols-3">
                 {boardCols.map((col) => {
                   const items = selectedLog[col.key] || [];
                   return (
@@ -373,12 +423,47 @@ function HaftalikFaaliyetler() {
                       </div>
                       {items.length > 0 ? (
                         <ul className="space-y-2">
-                          {items.map((item) => (
-                            <li key={item} className="flex items-start gap-2 rounded-xl bg-white px-3 py-2.5 text-sm text-slate-700 shadow-sm">
-                              <span className={`shrink-0 font-bold ${col.text}`}>{col.icon}</span>
-                              <span className="leading-relaxed">{item}</span>
-                            </li>
-                          ))}
+                          {items.map((item, idx) =>
+                            editingItem?.colKey === col.key && editingItem?.index === idx ? (
+                              <li key={idx} className="rounded-xl bg-white px-3 py-2.5 shadow-sm">
+                                <textarea
+                                  value={editingItem.text}
+                                  onChange={(e) => setEditingItem((p) => ({ ...p, text: e.target.value }))}
+                                  rows={2}
+                                  className="w-full resize-none rounded-lg border border-[#00377B] px-2 py-1 text-sm outline-none"
+                                />
+                                <div className="mt-1.5 flex gap-2">
+                                  <button type="button" onClick={() => handleSaveItem(col.key, idx, editingItem.text)}
+                                    className="rounded-lg bg-[#00377B] px-3 py-1 text-xs font-semibold text-white">Kaydet</button>
+                                  <button type="button" onClick={() => setEditingItem(null)}
+                                    className="rounded-lg border border-[#D6DEEA] px-3 py-1 text-xs text-slate-500">İptal</button>
+                                </div>
+                              </li>
+                            ) : (
+                              <li key={item + idx} className="group flex items-start gap-2 rounded-xl bg-white px-3 py-2.5 text-sm text-slate-700 shadow-sm">
+                                <span className={`shrink-0 font-bold ${col.text}`}>{col.icon}</span>
+                                <span className="flex-1 leading-relaxed">{item}</span>
+                                <div className="flex shrink-0 gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                                  <button type="button" title="Düzenle"
+                                    onClick={() => setEditingItem({ colKey: col.key, index: idx, text: item })}
+                                    className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-[#00377B]">
+                                    <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                      <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
+                                      <path d="M18.5 2.5a2.1 2.1 0 013 3L12 15l-4 1 1-4z" />
+                                    </svg>
+                                  </button>
+                                  <button type="button" title="Sil"
+                                    onClick={() => handleDeleteItem(col.key, idx)}
+                                    className="rounded p-1 text-slate-400 hover:bg-red-50 hover:text-red-600">
+                                    <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                      <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14H6L5 6" />
+                                      <path d="M10 11v6M14 11v6" /><path d="M9 6V4h6v2" />
+                                    </svg>
+                                  </button>
+                                </div>
+                              </li>
+                            )
+                          )}
                         </ul>
                       ) : (
                         <p className="text-xs text-slate-400">Bu haftada kayıt yok.</p>
@@ -401,7 +486,8 @@ function HaftalikFaaliyetler() {
                 <button
                   type="button"
                   onClick={() => {
-                    setFormData((prev) => ({ ...prev, haftaBaslangic: ws.toISOString().slice(0, 10) }));
+                    const f = defaultEmptyForm();
+                    setFormData({ ...f, haftaBaslangic: ws.toISOString().slice(0, 10), haftaBitis: we.toISOString().slice(0, 10) });
                     setModalOpen(true);
                   }}
                   className="mt-4 rounded-xl bg-[#00377B] px-4 py-2 text-sm font-medium text-white"
@@ -443,16 +529,6 @@ function HaftalikFaaliyetler() {
             <span>Bekleyenler</span>
             <textarea name="bekleyenler" rows="3" value={formData.bekleyenler} onChange={handleChange}
               placeholder="Her satıra bir madde" className="w-full rounded-xl border border-[#D6DEEA] px-4 py-3 outline-none" />
-          </label>
-          <label className="block space-y-2 text-sm text-slate-600">
-            <span>Sorunlar / Riskler</span>
-            <textarea name="sorunlar" rows="3" value={formData.sorunlar} onChange={handleChange}
-              placeholder="Her satıra bir risk veya sorun" className="w-full rounded-xl border border-[#D6DEEA] px-4 py-3 outline-none" />
-          </label>
-          <label className="block space-y-2 text-sm text-slate-600">
-            <span>Hazırlayan</span>
-            <input name="hazirlayan" value={formData.hazirlayan} onChange={handleChange}
-              placeholder="Örn. Öğrenci Dekanlığı" className="w-full rounded-xl border border-[#D6DEEA] px-4 py-3 outline-none" />
           </label>
           <div className="rounded-2xl border border-[#D6DEEA] bg-[#F8FAFD] p-4">
             <p className="mb-3 text-sm font-semibold text-[#1F2D5C]">Bağlı operasyonlar</p>

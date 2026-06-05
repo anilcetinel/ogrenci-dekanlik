@@ -19,7 +19,6 @@ const TYPES = [
   { key: "yapilanlar",   label: "Yapılan",   color: "#1F4D2C", bg: "bg-[#EEF7F0]", text: "text-[#1F4D2C]", dot: "bg-[#1F4D2C]", icon: "✓" },
   { key: "yapilacaklar", label: "Yapılacak", color: "#00377B", bg: "bg-[#EEF3FA]", text: "text-[#00377B]", dot: "bg-[#00377B]", icon: "→" },
   { key: "bekleyenler",  label: "Bekleyen",  color: "#A34D00", bg: "bg-[#FFF3E8]", text: "text-[#A34D00]", dot: "bg-[#F58220]", icon: "⏳" },
-  { key: "sorunlar",     label: "Riskli",    color: "#B91C1C", bg: "bg-red-50", text: "text-red-700", dot: "bg-red-600", icon: "!" },
 ];
 
 function ProgressBar({ value, max, color }) {
@@ -133,7 +132,7 @@ function YapilanIslerTakibi() {
       </div>
 
       {/* Sayaç kartları */}
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-3 md:grid-cols-3">
         {TYPES.map((t) => (
           <button key={t.key} type="button" onClick={() => setActiveType(t.key)}
             className={`rounded-2xl border p-4 text-left transition ${

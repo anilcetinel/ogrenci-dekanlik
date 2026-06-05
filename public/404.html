@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>SAÜ Öğrenci Dekanlığı</title>
+  <script>
+    // GitHub Pages SPA routing fix
+    // 404 sayfasına düşen route'u sessionStorage'a yazıp index.html'e yönlendir
+    var path = window.location.pathname;
+    var base = '/ogrenci-dekanlik'; // repo adınız
+    var redirectPath = path.replace(base, '') || '/';
+    sessionStorage.setItem('redirect', redirectPath + window.location.search);
+    window.location.replace(base + '/');
+  </script>
+</head>
+<body></body>
+</html>

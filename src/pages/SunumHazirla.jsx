@@ -262,58 +262,60 @@ function addContentSlide(pptx, { title, items, color = SAU_NAVY, icon = "•", e
   });
 }
 
-function addSummarySlide(pptx, { hafta, yapilanlar, yapilacaklar, bekleyenler, sorunlar }) {
+function addSummarySlide(pptx, { eyebrow, yapilanlar, yapilacaklar, bekleyenler, haftaSayisi }) {
   const slide = pptx.addSlide();
   addSauBackdrop(pptx, slide, { accent: SAU_ORANGE, photoBand: false });
-  addHeader(pptx, slide, "Haftalık Yönetici Özeti", hafta || "Faaliyet Panosu");
+  addHeader(pptx, slide, "Dönem Özeti", eyebrow || "Faaliyet Panosu");
 
+  // 3 büyük sayı kartı — geniş ve dengeli
   const cards = [
-    { label: "Yapılanlar", count: yapilanlar, color: GREEN, icon: "✓" },
-    { label: "Yapılacaklar", count: yapilacaklar, color: SAU_NAVY, icon: "→" },
-    { label: "Bekleyenler", count: bekleyenler, color: AMBER, icon: "!" },
-    { label: "Riskler", count: sorunlar, color: RED, icon: "!" },
+    { label: "Tamamlanan İş", count: yapilanlar, color: GREEN,    icon: "✓", sub: "yapılan madde" },
+    { label: "Planlanan İş",  count: yapilacaklar, color: SAU_NAVY, icon: "→", sub: "yapılacak madde" },
+    { label: "Bekleyen",      count: bekleyenler, color: AMBER,    icon: "⏳", sub: "geri dönüş bekleniyor" },
   ];
 
   cards.forEach((card, i) => {
-    const x = 0.75 + i * 3.08;
+    const x = 0.95 + i * 4.08;
+    const w = 3.55;
     slide.addShape(pptx.ShapeType.roundRect, {
-      x, y: 1.65, w: 2.65, h: 3.25,
-      fill: { color: WHITE, transparency: 90 },
-      line: { color: WHITE, transparency: 83 },
-      rectRadius: 0.12,
+      x, y: 1.58, w, h: 3.85,
+      fill: { color: WHITE, transparency: 88 },
+      line: { color: WHITE, transparency: 82 },
+      rectRadius: 0.14,
     });
     slide.addShape(pptx.ShapeType.rect, {
-      x, y: 1.65, w: 2.65, h: 0.18,
+      x, y: 1.58, w, h: 0.22,
       fill: { color: card.color },
       line: { color: card.color, transparency: 100 },
     });
+    slide.addText(card.icon, {
+      x: x + 0.3, y: 2.1, w: 0.6, h: 0.5,
+      fontSize: 22, bold: true, color: card.color, fontFace: "Arial", align: "center",
+    });
     slide.addText(card.label, {
-      x: x + 0.2, y: 2.05, w: 2.25, h: 0.35,
-      fontSize: 12, color: "DDEBFA", fontFace: "Arial", align: "center",
+      x: x + 0.2, y: 2.68, w: w - 0.4, h: 0.38,
+      fontSize: 12.5, bold: true, color: "DDEBFA", fontFace: "Arial", align: "center",
     });
     slide.addText(String(card.count), {
-      x: x + 0.25, y: 2.52, w: 2.15, h: 0.9,
-      fontSize: 44, bold: true, color: WHITE, fontFace: "Georgia", align: "center",
+      x: x + 0.2, y: 3.1, w: w - 0.4, h: 1.15,
+      fontSize: 58, bold: true, color: WHITE, fontFace: "Georgia", align: "center",
     });
-    slide.addText(card.icon, {
-      x: x + 0.87, y: 3.65, w: 0.9, h: 0.42,
-      fontSize: 18, bold: true, color: card.color, fontFace: "Arial", align: "center",
-    });
-    slide.addShape(pptx.ShapeType.arc, {
-      x: x + 0.72, y: 3.48, w: 1.2, h: 1.2,
-      line: { color: card.color, width: 4, transparency: 8 },
+    slide.addText(card.sub, {
+      x: x + 0.2, y: 4.42, w: w - 0.4, h: 0.28,
+      fontSize: 9.5, color: "AACCF0", fontFace: "Arial", align: "center", italic: true,
     });
   });
 
+  // Hafta sayısı alt band
   slide.addShape(pptx.ShapeType.roundRect, {
-    x: 1.1, y: 5.35, w: 11.1, h: 0.5,
-    fill: { color: "0B438B", transparency: 45 },
+    x: 4.45, y: 5.72, w: 4.4, h: 0.52,
+    fill: { color: "0B438B", transparency: 40 },
     line: { color: "0B438B", transparency: 100 },
-    rectRadius: 0.08,
+    rectRadius: 0.1,
   });
-  slide.addText("Bu sunum haftalık faaliyet kayıtlarından otomatik hazırlanmıştır; gerçek kişisel veri içermez.", {
-    x: 1.35, y: 5.52, w: 10.55, h: 0.18,
-    fontSize: 9.3, color: "DDEBFA", fontFace: "Arial", align: "center",
+  slide.addText(`${haftaSayisi} haftalık dönem verisi`, {
+    x: 4.55, y: 5.88, w: 4.2, h: 0.2,
+    fontSize: 10.5, bold: true, color: "DDEBFA", fontFace: "Arial", align: "center",
   });
 }
 
@@ -431,77 +433,68 @@ function SunumHazirla() {
       pptx.company = "Sakarya Üniversitesi";
       pptx.subject = sunumBasligi;
 
-      // 1. Kapak slaytı
-      const subtitle = selectedLogs.length > 0
-        ? `${fmt(selectedLogs[selectedLogs.length - 1].haftaBaslangic)} – ${fmt(selectedLogs[0].haftaBaslangic)}`
+      // Tüm seçili haftaları tarihe göre sırala
+      const sortedLogs = [...selectedLogs].sort(
+        (a, b) => new Date(a.haftaBaslangic) - new Date(b.haftaBaslangic),
+      );
+
+      // Toplu veriler
+      const allYapilanlar  = sortedLogs.flatMap((l) => l.yapilanlar  || []);
+      const allYapilacaklar = sortedLogs.flatMap((l) => l.yapilacaklar || []);
+      const allBekleyenler = sortedLogs.flatMap((l) => l.bekleyenler  || []);
+
+      const startLog = sortedLogs[0];
+      const endLog   = sortedLogs[sortedLogs.length - 1];
+      const subtitle = startLog
+        ? startLog === endLog
+          ? (startLog.haftaLabel || fmt(startLog.haftaBaslangic))
+          : `${shortFmt.format(new Date(startLog.haftaBaslangic))} – ${shortFmt.format(new Date(endLog.haftaBaslangic))}`
         : "2026-2027 Akademik Yılı";
+
+      // ── Slayt 1: Kapak ──────────────────────────────────────────
       addTitleSlide(pptx, sunumBasligi, subtitle);
 
-      // Her seçili hafta için
-      selectedLogs.forEach((log) => {
-        // Bölüm başlığı
-        addSectionSlide(pptx, log.haftaLabel || fmt(log.haftaBaslangic));
-
-        // Özet kart
-        addSummarySlide(pptx, {
-          hafta: log.haftaLabel,
-          yapilanlar: (log.yapilanlar || []).length,
-          yapilacaklar: (log.yapilacaklar || []).length,
-          bekleyenler: (log.bekleyenler || []).length,
-          sorunlar: (log.sorunlar || []).length,
-        });
-
-        // Yapılanlar
-        if ((log.yapilanlar || []).length > 0) {
-          addContentSlide(pptx, {
-            title: "Bu Hafta Yapılanlar",
-            eyebrow: log.haftaLabel,
-            color: GREEN,
-            icon: "✓",
-            items: log.yapilanlar,
-          });
-        }
-
-        // Yapılacaklar
-        if ((log.yapilacaklar || []).length > 0) {
-          addContentSlide(pptx, {
-            title: "Yapılacaklar / Planlar",
-            eyebrow: log.haftaLabel,
-            color: SAU_NAVY,
-            icon: "→",
-            items: log.yapilacaklar,
-          });
-        }
-
-        // Bekleyenler
-        if ((log.bekleyenler || []).length > 0) {
-          addContentSlide(pptx, {
-            title: "Bekleyen İşler",
-            eyebrow: log.haftaLabel,
-            color: AMBER,
-            icon: "⏳",
-            items: log.bekleyenler,
-          });
-        }
-
-        if ((log.sorunlar || []).length > 0) {
-          addContentSlide(pptx, {
-            title: "Sorunlar / Riskler",
-            eyebrow: log.haftaLabel,
-            color: RED,
-            icon: "!",
-            items: log.sorunlar,
-          });
-        }
+      // ── Slayt 2: Dönem özeti (büyük sayılar) ────────────────────
+      addSummarySlide(pptx, {
+        eyebrow: subtitle,
+        yapilanlar:  allYapilanlar.length,
+        yapilacaklar: allYapilacaklar.length,
+        bekleyenler: allBekleyenler.length,
+        haftaSayisi: sortedLogs.length,
       });
 
-      // Akademik takvim uyarıları
+      // ── Slayt 3: Öne çıkan başarılar (ilk 6 yapılan) ────────────
+      if (allYapilanlar.length > 0) {
+        addContentSlide(pptx, {
+          title: "Bu Dönemde Yapılanlar",
+          eyebrow: subtitle,
+          color: GREEN,
+          icon: "✓",
+          items: allYapilanlar.slice(0, 6),
+        });
+      }
+
+      // ── Slayt 4: Devam eden & bekleyenler (max 6) ────────────────
+      const devamItems = [
+        ...allYapilacaklar.map((t) => `→ ${t}`),
+        ...allBekleyenler.map((t) => `⏳ ${t}`),
+      ];
+      if (devamItems.length > 0) {
+        addContentSlide(pptx, {
+          title: "Planlanan & Bekleyen İşler",
+          eyebrow: subtitle,
+          color: SAU_NAVY,
+          icon: "→",
+          items: devamItems.slice(0, 6),
+        });
+      }
+
+      // ── Slayt 5: Akademik takvim uyarıları (opsiyonel) ───────────
       if (includeCalendar && calendarAlerts.length > 0) {
-        addSectionSlide(pptx, "Akademik Takvim Uyarıları");
         addCalendarAlerts(pptx, calendarAlerts);
       }
 
-      // Kapanış slaytı
+      // ── Slayt 6: Kapanış ─────────────────────────────────────────
       addClosingSlide(pptx);
 
       const safeTitle = sunumBasligi.replace(/[^a-z0-9ğüşıöçA-ZĞÜŞİÖÇ\s-]/gi, "");
@@ -590,16 +583,41 @@ function SunumHazirla() {
         </div>
       </div>
 
-      {/* Sunum önizleme bilgisi */}
-      <div className="rounded-xl border border-[#D6DEEA] bg-[#F8FAFD] px-4 py-3">
-        <p className="text-sm text-slate-600">
-          <span className="font-semibold text-[#1F2D5C]">Oluşturulacak sunum:</span>{" "}
-          {selectedLogs.length} haftalık kayıt
-          {includeCalendar && calendarAlerts.length > 0 ? ` + ${calendarAlerts.length} takvim uyarısı` : ""}
-          {" · "}SAÜ kurumsal renkleri (lacivert / turuncu)
-          {" · "}PPTX formatı
-        </p>
-      </div>
+      {/* Sunum önizleme */}
+      {selectedLogs.length > 0 && (() => {
+        const allY = selectedLogs.flatMap((l) => l.yapilanlar || []);
+        const allP = selectedLogs.flatMap((l) => l.yapilacaklar || []);
+        const allB = selectedLogs.flatMap((l) => l.bekleyenler || []);
+        const slideCount = 2
+          + (allY.length > 0 ? 1 : 0)
+          + (allP.length + allB.length > 0 ? 1 : 0)
+          + (includeCalendar && calendarAlerts.length > 0 ? 1 : 0)
+          + 1; // kapanış
+        return (
+          <div className="rounded-xl border border-[#D6DEEA] bg-[#F8FAFD] px-5 py-4">
+            <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-400">Sunum içeriği</p>
+            <div className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-3">
+              {[
+                { label: "Kapak slaytı", val: "1" },
+                { label: "Dönem özeti", val: "1" },
+                { label: "Yapılanlar", val: `${Math.min(allY.length, 6)} madde` },
+                { label: "Planlanan & Bekleyen", val: `${Math.min(allP.length + allB.length, 6)} madde` },
+                includeCalendar && calendarAlerts.length > 0 ? { label: "Takvim uyarıları", val: `${Math.min(calendarAlerts.length, 6)} olay` } : null,
+                { label: "Kapanış", val: "1" },
+              ].filter(Boolean).map((row) => (
+                <div key={row.label} className="flex items-center gap-2 rounded-lg border border-[#E5E7EB] bg-white px-3 py-2">
+                  <span className="h-1.5 w-1.5 rounded-full bg-[#00377B]" />
+                  <span className="text-slate-600">{row.label}</span>
+                  <span className="ml-auto text-xs font-semibold text-[#00377B]">{row.val}</span>
+                </div>
+              ))}
+            </div>
+            <p className="mt-3 text-right text-xs font-semibold text-[#1F2D5C]">
+              Toplam <span className="text-[#F58220]">{slideCount} slayt</span> · SAÜ kurumsal renkleri · PPTX
+            </p>
+          </div>
+        );
+      })()}
 
       {/* Oluştur butonu */}
       {done && (

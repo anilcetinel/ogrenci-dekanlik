@@ -117,6 +117,7 @@ function HizliNotGiris() {
   const [modalOpen, setModalOpen] = useState(false);
   const [attachedFiles, setAttachedFiles] = useState([]);
   const [fileNotice, setFileNotice] = useState("");
+  const [expandedFile, setExpandedFile] = useState(null); // hangi dosyanın içeriği açık
 
   const preview = useMemo(() => buildPreview(formData, operations), [formData, operations]);
   const selectedOperations = operations.filter((operation) =>
@@ -141,52 +142,29 @@ function HizliNotGiris() {
   const handleFiles = async (event) => {
     const files = Array.from(event.target.files || []);
     setFileNotice("");
-
-    if (files.length === 0) {
-      return;
-    }
+    if (files.length === 0) return;
 
     const nextAttachments = [];
-    const extractedBlocks = [];
-    const unsupported = [];
 
     for (const file of files) {
       const extension = getFileExtension(file.name);
       const extractedText = await extractTextFromFile(file);
-      const attachment = {
-        id: `file-${Date.now()}-${file.name}`,
+      nextAttachments.push({
+        id: `file-${Date.now()}-${Math.random().toString(36).slice(2)}-${file.name}`,
         ad: file.name,
         tur: getDocumentType(file.name),
         boyut: formatFileSize(file.size),
         uzanti: extension,
+        extractedText: extractedText || "", // ham metin — sadece önizleme için
         metinCikarildi: Boolean(extractedText),
-      };
-
-      nextAttachments.push(attachment);
-
-      if (extractedText) {
-        extractedBlocks.push(`Dosya: ${file.name}\n${extractedText}`);
-      } else {
-        unsupported.push(file.name);
-      }
+      });
     }
 
     setAttachedFiles((prev) => [...prev, ...nextAttachments]);
-
-    if (extractedBlocks.length > 0) {
-      setFormData((prev) => ({
-        ...prev,
-        kaynak: "Dosya",
-        icerik: [prev.icerik, ...extractedBlocks].filter(Boolean).join("\n\n"),
-      }));
-    }
-
-    if (unsupported.length > 0) {
-      setFileNotice(
-        `${unsupported.join(", ")} dosyası kaynak evrak olarak eklendi. Bu dosya türünden metin çıkarılamadı; gerekiyorsa özetini not alanına yazabilirsiniz.`,
-      );
-    }
-
+    // NOT ALANINA OTOMATİK METİN DOLDURULMAZ.
+    // Kullanıcı "İçeriği Görüntüle" ile okur, gerekli kısmı kendisi yazar.
+    setFormData((prev) => ({ ...prev, kaynak: "Dosya" }));
+    setFileNotice(`${nextAttachments.length} dosya eklendi. İlgili kısımları not alanına kendiniz yazın.`);
     event.target.value = "";
   };
 
@@ -348,27 +326,44 @@ function HizliNotGiris() {
                 </div>
               )}
               {attachedFiles.length > 0 && (
-                <div className="mt-3 grid gap-2 md:grid-cols-2">
+                <div className="mt-3 space-y-2">
                   {attachedFiles.map((file) => (
-                    <div key={file.id} className="rounded-xl border border-[#E5E7EB] bg-white px-3 py-2">
-                      <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <p className="text-sm font-semibold text-[#1F2D5C]">{file.ad}</p>
-                          <p className="mt-1 text-xs text-slate-500">
-                            {file.tur} · {file.boyut} · {file.metinCikarildi ? "metin alındı" : "kaynak olarak bağlandı"}
-                          </p>
+                    <div key={file.id} className="rounded-xl border border-[#E5E7EB] bg-white">
+                      <div className="flex items-center justify-between gap-2 px-3 py-2.5">
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-semibold text-[#1F2D5C]">{file.ad}</p>
+                          <p className="mt-0.5 text-xs text-slate-400">{file.tur} · {file.boyut}</p>
                         </div>
-                        <button type="button" onClick={() => removeAttachment(file.id)} className="text-xs font-semibold text-red-600">
-                          Kaldır
-                        </button>
+                        <div className="flex shrink-0 items-center gap-2">
+                          {file.metinCikarildi && (
+                            <button
+                              type="button"
+                              onClick={() => setExpandedFile(expandedFile === file.id ? null : file.id)}
+                              className="rounded-lg border border-[#D6DEEA] px-2.5 py-1 text-xs font-medium text-[#1F2D5C] hover:border-[#00377B]"
+                            >
+                              {expandedFile === file.id ? "Gizle" : "İçeriği Görüntüle"}
+                            </button>
+                          )}
+                          <button type="button" onClick={() => removeAttachment(file.id)}
+                            className="rounded-lg border border-red-200 px-2.5 py-1 text-xs font-medium text-red-600 hover:bg-red-50">
+                            Kaldır
+                          </button>
+                        </div>
                       </div>
+                      {expandedFile === file.id && file.extractedText && (
+                        <div className="border-t border-[#E5E7EB] bg-slate-50 px-3 py-3">
+                          <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                            Dosya içeriği — ilgili kısımları not alanına kopyalayın
+                          </p>
+                          <pre className="max-h-48 overflow-y-auto whitespace-pre-wrap text-xs leading-5 text-slate-600 font-sans">
+                            {file.extractedText}
+                          </pre>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
               )}
-            </div>
-            <div className="rounded-xl border border-[#D6DEEA] bg-[#F8FAFD] px-4 py-3 text-xs leading-5 text-slate-500">
-              Kişisel veri girmeyiniz. Öğrenci adı, T.C. kimlik numarası, telefon veya özel sağlık/disciplin bilgisi yazmayın.
             </div>
             <div className="flex flex-wrap justify-end gap-3">
               <button type="button" onClick={() => setModalOpen(true)}
