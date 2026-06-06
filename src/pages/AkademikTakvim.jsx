@@ -612,7 +612,7 @@ function AkademikTakvim() {
 
       setPreviewRows(parsedRows);
       setViewMode("Yıllık");
-      setSuccessMessage("Excel önizlemesi takvime yerleştirildi. Kalıcı kaydetmek için İçe Aktar seçin.");
+      setSuccessMessage("Excel önizlemesi takvime yerleştirildi. Diğer kullanıcıların görmesi için İçe Aktar'a basın.");
     } catch {
       setImportError("Excel dosyası okunamadı. Lütfen .xlsx formatını ve sütun başlıklarını kontrol edin.");
     } finally {
@@ -636,7 +636,7 @@ function AkademikTakvim() {
     upsertRecords(rowsToSave, (item) => `${item.ad}__${item.baslangic}`);
     setPreviewRows([]);
     setViewMode("Yıllık");
-    setSuccessMessage("Akademik takvim olayları kaydedildi.");
+    setSuccessMessage("Akademik takvim olayları ortak takvime kaydedildi. Diğer kullanıcılar sayfayı yenileyince görebilir.");
   };
 
   const openEditModal = (event) => {
@@ -697,7 +697,9 @@ function AkademikTakvim() {
         <div className="flex items-center justify-between gap-4 rounded-2xl border border-[#00377B]/30 bg-[#EEF3FA] px-5 py-4">
           <div>
             <p className="font-semibold text-[#1F2D5C]">{previewRows.length} kayıt takvime önizlendi</p>
-            <p className="mt-0.5 text-sm text-slate-500">Kalıcı kaydetmek için "İçe Aktar"a tıklayın.</p>
+            <p className="mt-0.5 text-sm text-slate-500">
+              Bu aşamada yalnızca siz görürsünüz. Herkesin görmesi için "İçe Aktar"a tıklayın.
+            </p>
           </div>
           <div className="flex shrink-0 gap-2">
             <button type="button" onClick={importPreviewRows}
