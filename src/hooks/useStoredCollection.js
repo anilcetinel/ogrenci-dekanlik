@@ -9,6 +9,19 @@ import {
 } from "../utils/sharedStorage";
 import { canEditData } from "../utils/auth";
 
+function mergeById(primaryRecords, secondaryRecords) {
+  const recordsById = new Map();
+
+  secondaryRecords.forEach((record) => {
+    recordsById.set(String(record.id), record);
+  });
+  primaryRecords.forEach((record) => {
+    recordsById.set(String(record.id), record);
+  });
+
+  return Array.from(recordsById.values());
+}
+
 function useStoredCollection(storageKey, demoRecords, options = {}) {
   const { sortByDateField } = options;
   const [syncStatus, setSyncStatus] = useState(
@@ -35,9 +48,21 @@ function useStoredCollection(storageKey, demoRecords, options = {}) {
         setSyncStatus("ortak-veri-baglaniyor");
         const sharedRecords = await fetchSharedRecords(storageKey);
         if (cancelled) return;
-        setStoredRecords(sharedRecords);
-        writeStoredCollection(storageKey, sharedRecords);
+        const localRecords = readStoredCollection(storageKey);
+        const mergedRecords = mergeById(sharedRecords, localRecords);
+        const localOnlyRecords = localRecords.filter(
+          (localRecord) => !sharedRecords.some((sharedRecord) => String(sharedRecord.id) === String(localRecord.id)),
+        );
+
+        setStoredRecords(mergedRecords);
+        writeStoredCollection(storageKey, mergedRecords);
         setSyncStatus("ortak-veri-aktif");
+
+        if (localOnlyRecords.length > 0 && canEditData()) {
+          upsertSharedRecords(storageKey, localOnlyRecords).catch((error) => {
+            console.warn("Yerel kayıtlar ortak alana tamamlanamadı:", storageKey, error);
+          });
+        }
       } catch (error) {
         console.warn("Ortak veri okunamadı, yerel kayıtlar kullanılacak:", storageKey, error);
         if (!cancelled) setSyncStatus("ortak-veri-hatasi");

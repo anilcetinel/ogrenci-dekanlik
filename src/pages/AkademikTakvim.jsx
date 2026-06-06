@@ -688,7 +688,7 @@ function AkademikTakvim() {
       setImportReport(null);
       setViewMode("Yıllık");
       setImportError("");
-      setSuccessMessage("Akademik takvim olayları ortak takvime kaydedildi. Diğer kullanıcılar sayfayı yenileyince görebilir.");
+      setSuccessMessage("Akademik takvim olayları ortak takvime kaydedildi. Diğer kullanıcıların ekranı kısa süre içinde otomatik güncellenir.");
     } catch (error) {
       console.error("Akademik takvim ortak veriye kaydedilemedi:", error);
       setImportError("Akademik takvim ortak veriye kaydedilemedi. Supabase API anahtarı, tablo izinleri veya internet bağlantısını kontrol edin.");

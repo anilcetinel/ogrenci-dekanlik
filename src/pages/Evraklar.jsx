@@ -17,7 +17,52 @@ const emptyForm = {
   ilgiliOperasyon: "",
   aciklama: "",
   dosyaLinki: "",
+  dosyaOzet: "",
+  dosyaMetni: "",
 };
+
+function cleanExtractedText(value) {
+  const seen = new Set();
+  return String(value || "")
+    .replace(/\r/g, "\n")
+    .split("\n")
+    .map((line) => line.replace(/\s+/g, " ").trim())
+    .filter((line) => {
+      if (!line || line.length < 4) return false;
+      const normalized = line.toLocaleLowerCase("tr-TR");
+      if (/^sayfa\s+\d+/.test(normalized) || /^\d+$/.test(normalized)) return false;
+      if (normalized.includes("prototip") || normalized.includes("kişisel veri")) return false;
+      if (seen.has(normalized)) return false;
+      seen.add(normalized);
+      return true;
+    })
+    .join("\n");
+}
+
+function buildDocumentSummary(value) {
+  const lines = cleanExtractedText(value)
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  if (lines.length === 0) {
+    return "";
+  }
+
+  const usefulLines = lines.filter((line) => {
+    const normalized = line.toLocaleLowerCase("tr-TR");
+    return (
+      line.length > 18 &&
+      !normalized.includes("sakarya üniversitesi") &&
+      !normalized.includes("öğrenci destek koordinatörlüğü")
+    );
+  });
+
+  return (usefulLines.length ? usefulLines : lines)
+    .slice(0, 8)
+    .map((line) => `- ${line}`)
+    .join("\n");
+}
 
 function Evraklar() {
   const editable = canEditData();
@@ -35,6 +80,14 @@ function Evraklar() {
     [activeTab, docs],
   );
 
+  const closeModal = () => {
+    setModalOpen(false);
+    setFormData(emptyForm);
+    setFormError("");
+    setSelectedFile(null);
+    setFileNotice("");
+  };
+
   const handleChange = (event) => {
     const { name, value } = event.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -51,20 +104,24 @@ function Evraklar() {
       tur: getDocumentType(file.name),
     };
     const extractedText = await extractTextFromFile(file);
+    const cleanedText = cleanExtractedText(extractedText);
+    const summary = buildDocumentSummary(cleanedText);
 
     setSelectedFile(fileInfo);
     setFormData((prev) => ({
       ...prev,
       ad: prev.ad || fileInfo.ad,
       tur: fileInfo.tur,
-      aciklama: extractedText
-        ? [prev.aciklama, `Dosyadan çıkarılan içerik:\n${extractedText}`].filter(Boolean).join("\n\n")
+      aciklama: summary
+        ? [prev.aciklama, `Dosyadan çıkarılan özet:\n${summary}`].filter(Boolean).join("\n\n")
         : prev.aciklama,
       dosyaLinki: `Tarayıcı içi kaynak kaydı · ${fileInfo.boyut}`,
+      dosyaOzet: summary,
+      dosyaMetni: cleanedText.slice(0, 6000),
     }));
     setFileNotice(
-      extractedText
-        ? "Dosya içeriği açıklama alanına aktarıldı."
+      summary
+        ? "Dosya içeriği temizlendi ve açıklama alanına özet olarak aktarıldı."
         : "Bu dosya kaynak olarak kaydedilir; bu türden otomatik metin çıkarılamadı.",
     );
     event.target.value = "";
@@ -91,9 +148,7 @@ function Evraklar() {
       ...formData,
     });
     setActiveTab(formData.tur);
-    setFormData(emptyForm);
-    setSelectedFile(null);
-    setModalOpen(false);
+    closeModal();
     setSuccessMessage("Evrak / şablon kaydı başarıyla eklendi.");
   };
 
@@ -174,6 +229,12 @@ function Evraklar() {
               <h3 className="mt-4 text-lg font-semibold text-[#1F2D5C]">{doc.ad}</h3>
               <p className="mt-2 text-sm font-medium text-slate-500">{doc.ilgiliOperasyon}</p>
               <p className="mt-3 text-sm leading-6 text-slate-600">{doc.aciklama}</p>
+              {doc.dosyaOzet && (
+                <div className="mt-3 rounded-xl border border-[#D6DEEA] bg-[#F8FAFD] px-3 py-2">
+                  <p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-slate-400">Dosyadan çıkarılan düzenli özet</p>
+                  <pre className="whitespace-pre-wrap font-sans text-xs leading-5 text-slate-600">{doc.dosyaOzet}</pre>
+                </div>
+              )}
               {doc.dosyaLinki && (
                 <p className="mt-3 rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-500">
                   Kaynak: {doc.dosyaLinki}
@@ -193,7 +254,7 @@ function Evraklar() {
       {editable && modalOpen && (
         <FormModal
           title="Evrak / Şablon Girişi"
-          onClose={() => setModalOpen(false)}
+          onClose={closeModal}
           onSubmit={handleSubmit}
           error={formError}
         >
@@ -219,6 +280,14 @@ function Evraklar() {
             <span>Açıklama</span>
             <textarea required name="aciklama" rows="3" value={formData.aciklama} onChange={handleChange} className="w-full rounded-xl border border-[#D6DEEA] px-4 py-3 outline-none" />
           </label>
+          {formData.dosyaOzet && (
+            <div className="rounded-2xl border border-[#D6DEEA] bg-[#F8FAFD] p-4">
+              <p className="mb-2 text-sm font-semibold text-[#1F2D5C]">Dosyadan çıkarılan düzenli özet</p>
+              <pre className="max-h-48 overflow-y-auto whitespace-pre-wrap font-sans text-xs leading-5 text-slate-600">
+                {formData.dosyaOzet}
+              </pre>
+            </div>
+          )}
           <label className="block space-y-2 text-sm text-slate-600">
             <span>Dosya linki placeholder</span>
             <input name="dosyaLinki" value={formData.dosyaLinki} onChange={handleChange} placeholder="Örn. /sablonlar/final-programi.xlsx" className="w-full rounded-xl border border-[#D6DEEA] px-4 py-3 outline-none" />
@@ -253,7 +322,7 @@ function Evraklar() {
             )}
           </div>
           <div className="flex justify-end gap-3 pt-2">
-            <button type="button" onClick={() => setModalOpen(false)} className="rounded-xl border border-[#D6DEEA] px-4 py-3 text-sm font-medium text-slate-600">
+            <button type="button" onClick={closeModal} className="rounded-xl border border-[#D6DEEA] px-4 py-3 text-sm font-medium text-slate-600">
               Vazgeç
             </button>
             <button type="submit" className="rounded-xl bg-[#00377B] px-4 py-3 text-sm font-medium text-white">

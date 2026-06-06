@@ -9,15 +9,10 @@ function getRestUrl(path = "") {
 function getHeaders(extraHeaders = {}) {
   const headers = {
     apikey: SUPABASE_ANON_KEY,
+    Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
     "Content-Type": "application/json",
     ...extraHeaders,
   };
-
-  // Supabase'in eski anon key'i JWT formatındadır ve REST API'de Bearer olarak da güvenle çalışır.
-  // Yeni sb_publishable_* anahtarlar JWT olmadığı için Authorization header'ına konmaz.
-  if (SUPABASE_ANON_KEY?.startsWith("eyJ")) {
-    headers.Authorization = `Bearer ${SUPABASE_ANON_KEY}`;
-  }
 
   return headers;
 }
