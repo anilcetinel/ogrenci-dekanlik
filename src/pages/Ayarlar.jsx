@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { getSharedStorageInfo, isSharedStorageEnabled, upsertSharedRecords } from "../utils/sharedStorage";
+import { canEditData } from "../utils/auth";
 import { readStoredCollection } from "../utils/storage";
 
 const COLLECTIONS = [
@@ -15,6 +16,7 @@ function getCount(key) {
 }
 
 function Ayarlar() {
+  const editable = canEditData();
   const [importStatus, setImportStatus] = useState("");
   const [counts, setCounts] = useState(() => Object.fromEntries(COLLECTIONS.map((c) => [c.key, getCount(c.key)])));
   const [syncing, setSyncing] = useState(false);
@@ -172,17 +174,20 @@ function Ayarlar() {
           </div>
         )}
 
-        <button
-          type="button"
-          onClick={handleSyncToSharedStorage}
-          disabled={!sharedStorageInfo.enabled || syncing || totalRecords === 0}
-          className="mt-4 rounded-xl bg-[#00377B] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#1F2D5C] disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          {syncing ? "Aktarılıyor..." : "Yerel Verileri Ortak Alana Aktar"}
-        </button>
+        {editable && (
+          <button
+            type="button"
+            onClick={handleSyncToSharedStorage}
+            disabled={!sharedStorageInfo.enabled || syncing || totalRecords === 0}
+            className="mt-4 rounded-xl bg-[#00377B] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#1F2D5C] disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {syncing ? "Aktarılıyor..." : "Yerel Verileri Ortak Alana Aktar"}
+          </button>
+        )}
       </div>
 
       {/* Yedekleme */}
+      {editable && (
       <div className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm">
         <h3 className="mb-1 text-sm font-bold text-[#1F2D5C]">Veri Yedekleme</h3>
         <p className="mb-4 text-xs leading-5 text-slate-500">
@@ -215,8 +220,10 @@ function Ayarlar() {
           <strong>Uyarı:</strong> Geri yükleme mevcut tüm verilerin üzerine yazar. Önce yedek alın.
         </div>
       </div>
+      )}
 
       {/* Tehlikeli alan */}
+      {editable && (
       <div className="rounded-2xl border border-red-200 bg-white p-5 shadow-sm">
         <h3 className="mb-1 text-sm font-bold text-red-700">Veri Sıfırlama</h3>
         <p className="mb-4 text-xs leading-5 text-slate-500">
@@ -231,6 +238,7 @@ function Ayarlar() {
           Tüm Verileri Sil
         </button>
       </div>
+      )}
     </div>
   );
 }

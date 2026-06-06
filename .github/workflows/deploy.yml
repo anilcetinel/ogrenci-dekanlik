@@ -36,8 +36,10 @@ jobs:
         env:
           # Repo adınızı buraya yazın (github.com/KULLANICI/REPO-ADI → REPO-ADI)
           GITHUB_REPO_NAME: ${{ github.event.repository.name }}
-          # Erişim PIN'i — GitHub repo Settings > Secrets > VITE_APP_PIN olarak ekleyin
+          # Erişim kodları — GitHub repo Settings > Secrets bölümünden eklenir.
           VITE_APP_PIN: ${{ secrets.VITE_APP_PIN }}
+          VITE_ADMIN_PIN: ${{ secrets.VITE_ADMIN_PIN }}
+          VITE_VIEWER_PIN: ${{ secrets.VITE_VIEWER_PIN }}
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
         run: npm run build

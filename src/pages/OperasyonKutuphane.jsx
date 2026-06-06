@@ -6,6 +6,7 @@ import SectionCard from "../components/SectionCard";
 import SuccessMessage from "../components/SuccessMessage";
 import useStoredCollection from "../hooks/useStoredCollection";
 import operasyonData from "../data/operasyon-kutuphanesi.json";
+import { canEditData } from "../utils/auth";
 import { splitLines } from "../utils/storage";
 
 const emptyForm = {
@@ -25,6 +26,7 @@ const emptyForm = {
 };
 
 function OperasyonKutuphane() {
+  const editable = canEditData();
   const { records: operations, addRecord } = useStoredCollection("operasyonRecords", operasyonData);
   const [search, setSearch] = useState("");
   const [kategori, setKategori] = useState("Tümü");
@@ -107,7 +109,7 @@ function OperasyonKutuphane() {
 
       <SectionCard
         title="İş Hafızası Araması"
-        action={
+        action={editable ? (
           <button
             type="button"
             onClick={() => setModalOpen(true)}
@@ -115,7 +117,7 @@ function OperasyonKutuphane() {
           >
             Yeni Operasyon Ekle
           </button>
-        }
+        ) : null}
       >
         <div className="grid gap-4 md:grid-cols-[1fr_260px]">
           <label className="space-y-2 text-sm text-slate-600">
@@ -182,7 +184,7 @@ function OperasyonKutuphane() {
         </SectionCard>
       )}
 
-      {modalOpen && (
+      {editable && modalOpen && (
         <FormModal
           title="Operasyon Girişi"
           onClose={() => setModalOpen(false)}

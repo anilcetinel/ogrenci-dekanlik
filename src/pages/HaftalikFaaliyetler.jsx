@@ -5,6 +5,7 @@ import SuccessMessage from "../components/SuccessMessage";
 import useStoredCollection from "../hooks/useStoredCollection";
 import initialLogs from "../data/haftalik-log.json";
 import operasyonData from "../data/operasyon-kutuphanesi.json";
+import { canEditData } from "../utils/auth";
 import { splitLines } from "../utils/storage";
 
 const dayFmt = new Intl.DateTimeFormat("tr-TR", { day: "2-digit", month: "short" });
@@ -81,6 +82,7 @@ const boardCols = [
 ];
 
 function HaftalikFaaliyetler() {
+  const editable = canEditData();
   const [searchParams, setSearchParams] = useSearchParams();
   const { records: logs, mergeRecord, deleteRecord } = useStoredCollection("haftalikLogRecords", initialLogs, {
     sortByDateField: "haftaBaslangic",
@@ -115,9 +117,11 @@ function HaftalikFaaliyetler() {
       haftaBaslangic: prev.haftaBaslangic || weekStart(today).toISOString().slice(0, 10),
       operasyonIds: uniqueItems([...(prev.operasyonIds || []), operationId]),
     }));
-    setModalOpen(true);
+    if (editable) {
+      setModalOpen(true);
+    }
     setSearchParams({}, { replace: true });
-  }, [searchParams, setSearchParams]);
+  }, [editable, searchParams, setSearchParams]);
 
   const days = buildMonthGrid(currentMonth);
 
@@ -340,31 +344,33 @@ function HaftalikFaaliyetler() {
             </div>
           )}
 
-          <button
-            type="button"
-            onClick={() => {
-              if (selectedLog) {
-                // Mevcut haftanın verilerini forma doldur
-                setFormData({
-                  haftaBaslangic: selectedLog.haftaBaslangic,
-                  haftaBitis: selectedLog.haftaBitis || "",
-                  yapilanlar: (selectedLog.yapilanlar || []).join("\n"),
-                  yapilacaklar: (selectedLog.yapilacaklar || []).join("\n"),
-                  bekleyenler: (selectedLog.bekleyenler || []).join("\n"),
-                  sorunlar: (selectedLog.sorunlar || []).join("\n"),
-                  hazirlayan: selectedLog.hazirlayan || "",
-                  operasyonIds: selectedLog.operasyonIds || [],
-                });
-              } else {
-                const f = defaultEmptyForm();
-                setFormData({ ...f, haftaBaslangic: ws.toISOString().slice(0, 10) });
-              }
-              setModalOpen(true);
-            }}
-            className="w-full rounded-xl bg-[#00377B] py-2.5 text-sm font-medium text-white transition hover:bg-[#1F2D5C]"
-          >
-            {selectedLog ? "✎ Haftayı Düzenle" : "+ Yeni Haftalık Kayıt"}
-          </button>
+          {editable && (
+            <button
+              type="button"
+              onClick={() => {
+                if (selectedLog) {
+                  // Mevcut haftanın verilerini forma doldur
+                  setFormData({
+                    haftaBaslangic: selectedLog.haftaBaslangic,
+                    haftaBitis: selectedLog.haftaBitis || "",
+                    yapilanlar: (selectedLog.yapilanlar || []).join("\n"),
+                    yapilacaklar: (selectedLog.yapilacaklar || []).join("\n"),
+                    bekleyenler: (selectedLog.bekleyenler || []).join("\n"),
+                    sorunlar: (selectedLog.sorunlar || []).join("\n"),
+                    hazirlayan: selectedLog.hazirlayan || "",
+                    operasyonIds: selectedLog.operasyonIds || [],
+                  });
+                } else {
+                  const f = defaultEmptyForm();
+                  setFormData({ ...f, haftaBaslangic: ws.toISOString().slice(0, 10) });
+                }
+                setModalOpen(true);
+              }}
+              className="w-full rounded-xl bg-[#00377B] py-2.5 text-sm font-medium text-white transition hover:bg-[#1F2D5C]"
+            >
+              {selectedLog ? "✎ Haftayı Düzenle" : "+ Yeni Haftalık Kayıt"}
+            </button>
+          )}
 
           <button
             type="button"
@@ -400,13 +406,15 @@ function HaftalikFaaliyetler() {
                       {getOpName(id)}
                     </span>
                   ))}
-                  <button
-                    type="button"
-                    onClick={handleDeleteSelectedLog}
-                    className="ml-auto rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700"
-                  >
-                    Haftayı Sil
-                  </button>
+                  {editable && (
+                    <button
+                      type="button"
+                      onClick={handleDeleteSelectedLog}
+                      className="ml-auto rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700"
+                    >
+                      Haftayı Sil
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -443,6 +451,7 @@ function HaftalikFaaliyetler() {
                               <li key={item + idx} className="group flex items-start gap-2 rounded-xl bg-white px-3 py-2.5 text-sm text-slate-700 shadow-sm">
                                 <span className={`shrink-0 font-bold ${col.text}`}>{col.icon}</span>
                                 <span className="flex-1 leading-relaxed">{item}</span>
+                                {editable && (
                                 <div className="flex shrink-0 gap-1 opacity-0 transition-opacity group-hover:opacity-100">
                                   <button type="button" title="Düzenle"
                                     onClick={() => setEditingItem({ colKey: col.key, index: idx, text: item })}
@@ -461,6 +470,7 @@ function HaftalikFaaliyetler() {
                                     </svg>
                                   </button>
                                 </div>
+                                )}
                               </li>
                             )
                           )}
@@ -478,22 +488,24 @@ function HaftalikFaaliyetler() {
               <div className="text-center">
                 <p className="text-sm font-semibold text-[#1F2D5C]">Bu hafta için kayıt bulunamadı</p>
                 <p className="mt-1 text-xs text-slate-400">
-                  {dayFmt.format(ws)} – {dayFmt.format(we)} haftası · Yeni kayıt ekleyebilirsiniz
+                  {dayFmt.format(ws)} – {dayFmt.format(we)} haftası
                 </p>
                 <p className="mx-auto mt-2 max-w-sm text-xs leading-5 text-slate-500">
                   Kayıtlı haftaları görmek için soldaki turuncu işaretli günlere veya “Bu aydaki kayıtlı haftalar” listesine tıklayın.
                 </p>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const f = defaultEmptyForm();
-                    setFormData({ ...f, haftaBaslangic: ws.toISOString().slice(0, 10), haftaBitis: we.toISOString().slice(0, 10) });
-                    setModalOpen(true);
-                  }}
-                  className="mt-4 rounded-xl bg-[#00377B] px-4 py-2 text-sm font-medium text-white"
-                >
-                  Bu Haftayı Ekle
-                </button>
+                {editable && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const f = defaultEmptyForm();
+                      setFormData({ ...f, haftaBaslangic: ws.toISOString().slice(0, 10), haftaBitis: we.toISOString().slice(0, 10) });
+                      setModalOpen(true);
+                    }}
+                    className="mt-4 rounded-xl bg-[#00377B] px-4 py-2 text-sm font-medium text-white"
+                  >
+                    Bu Haftayı Ekle
+                  </button>
+                )}
               </div>
             </div>
           )}

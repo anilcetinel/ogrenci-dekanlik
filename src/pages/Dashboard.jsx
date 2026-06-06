@@ -7,6 +7,7 @@ import useStoredCollection from "../hooks/useStoredCollection";
 import takvimData from "../data/akademik-takvim.json";
 import haftalikLogData from "../data/haftalik-log.json";
 import operasyonData from "../data/operasyon-kutuphanesi.json";
+import { canEditData } from "../utils/auth";
 import { getCalendarAlert } from "../utils/calendar";
 
 const dateFormatter = new Intl.DateTimeFormat("tr-TR", { day: "2-digit", month: "long", year: "numeric" });
@@ -43,6 +44,7 @@ const TYPES = [
 ];
 
 function Dashboard() {
+  const editable = canEditData();
   const { records: takvimRecords } = useStoredCollection("akademikTakvimRecords", takvimData);
   const { records: operasyonRecords } = useStoredCollection("operasyonRecords", operasyonData);
   const { records: logs } = useStoredCollection("haftalikLogRecords", haftalikLogData, {
@@ -172,7 +174,7 @@ function Dashboard() {
               <p className="text-sm text-slate-400">Bu hafta için henüz kayıt girilmemiş.</p>
               <Link to="/haftalik-faaliyetler"
                 className="rounded-xl bg-[#00377B] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#1F2D5C]">
-                + Haftalık Kayıt Ekle
+                {editable ? "+ Haftalık Kayıt Ekle" : "Haftalıkları Görüntüle"}
               </Link>
             </div>
           )}
@@ -285,7 +287,7 @@ function Dashboard() {
         <SectionCard title="Hızlı Erişim">
           <div className="grid gap-2">
             {[
-              { to: "/haftalik-faaliyetler", label: "Haftalık Kayıt Ekle" },
+              { to: "/haftalik-faaliyetler", label: editable ? "Haftalık Kayıt Ekle" : "Haftalıkları Görüntüle" },
               { to: "/akademik-takvim", label: "Akademik Takvim" },
               { to: "/operasyon-takip", label: "Yapılan İşler Takibi" },
               { to: "/sunum-hazirla", label: "Sunum Hazırla" },

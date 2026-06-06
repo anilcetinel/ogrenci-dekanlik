@@ -7,6 +7,7 @@ import {
   isSharedStorageEnabled,
   upsertSharedRecords,
 } from "../utils/sharedStorage";
+import { canEditData } from "../utils/auth";
 
 function useStoredCollection(storageKey, demoRecords, options = {}) {
   const { sortByDateField } = options;
@@ -63,6 +64,11 @@ function useStoredCollection(storageKey, demoRecords, options = {}) {
   }, [demoRecords, sortByDateField, storedRecords]);
 
   const persistRecords = (nextRecords, recordsToSync = nextRecords) => {
+    if (!canEditData()) {
+      console.warn("İzleyici modunda veri değişikliği engellendi:", storageKey);
+      return;
+    }
+
     setStoredRecords(nextRecords);
     writeStoredCollection(storageKey, nextRecords);
 

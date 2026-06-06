@@ -21,7 +21,8 @@ Herkesin aynı kayıtları görmesi için Supabase bağlantısı tanımlanmalıd
 ```bash
 VITE_SUPABASE_URL=https://SUPABASE-PROJE-REF.supabase.co
 VITE_SUPABASE_ANON_KEY=SUPABASE_ANON_PUBLIC_KEY
-VITE_APP_PIN=sau2026
+VITE_ADMIN_PIN=sadece-sizin-bileceginiz-yonetici-kodu
+VITE_VIEWER_PIN=5-kisiyle-paylasilacak-izleyici-kodu
 ```
 
 4. GitHub Pages yayını için repo ayarlarında şu secret'ları ekleyin:
@@ -29,10 +30,16 @@ VITE_APP_PIN=sau2026
 ```text
 VITE_SUPABASE_URL
 VITE_SUPABASE_ANON_KEY
-VITE_APP_PIN
+VITE_ADMIN_PIN
+VITE_VIEWER_PIN
 ```
 
 5. Daha önce tarayıcıya girilmiş yerel kayıtlar varsa uygulamada `Ayarlar` sayfasından `Yerel Verileri Ortak Alana Aktar` butonunu kullanın.
+
+## Erişim Mantığı
+
+`VITE_ADMIN_PIN` ile giren kullanıcı kayıt ekleyebilir, düzenleyebilir ve silebilir.
+`VITE_VIEWER_PIN` ile giren kullanıcı yalnızca kayıtları görüntüler.
 
 ## Güvenlik Notu
 

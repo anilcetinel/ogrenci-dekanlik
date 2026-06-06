@@ -7,6 +7,7 @@ import useStoredCollection from "../hooks/useStoredCollection";
 import haftalikLogData from "../data/haftalik-log.json";
 import operasyonData from "../data/operasyon-kutuphanesi.json";
 import evrakData from "../data/evraklar.json";
+import { canEditData } from "../utils/auth";
 import { extractTextFromFile, formatFileSize, getDocumentType, getFileExtension } from "../utils/fileText";
 import { splitLines } from "../utils/storage";
 
@@ -105,6 +106,7 @@ function buildPreview(formData, operations) {
 }
 
 function HizliNotGiris() {
+  const editable = canEditData();
   const { records: logs, mergeRecord } = useStoredCollection("haftalikLogRecords", haftalikLogData, {
     sortByDateField: "haftaBaslangic",
   });
@@ -263,6 +265,7 @@ function HizliNotGiris() {
         </p>
       </section>
 
+      {editable ? (
       <div className="grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">
         <SectionCard title="Ham Not">
           <form onSubmit={saveNote} className="space-y-4">
@@ -414,6 +417,13 @@ function HizliNotGiris() {
           </div>
         </SectionCard>
       </div>
+      ) : (
+        <SectionCard title="Görüntüleme Modu">
+          <div className="rounded-2xl border border-[#D6DEEA] bg-[#F8FAFD] p-5 text-sm leading-6 text-slate-600">
+            Bu sayfa hızlı not ve dosyadan bilgi yakalama için kullanılır. İzleyici erişiminde yeni not ekleme kapalıdır.
+          </div>
+        </SectionCard>
+      )}
 
       <SectionCard title="Son Hızlı Notlar">
         {notes.length > 0 ? (
@@ -424,13 +434,15 @@ function HizliNotGiris() {
                   <Badge tone="bekliyor">{note.kaynak}</Badge>
                   <span>{dateFmt.format(new Date(note.tarih))}</span>
                   <span>{note.hazirlayan}</span>
-                  <button
-                    type="button"
-                    onClick={() => handleDeleteNote(note)}
-                    className="ml-auto rounded-lg border border-red-200 bg-red-50 px-2 py-1 text-[11px] font-semibold text-red-700"
-                  >
-                    Sil
-                  </button>
+                  {editable && (
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteNote(note)}
+                      className="ml-auto rounded-lg border border-red-200 bg-red-50 px-2 py-1 text-[11px] font-semibold text-red-700"
+                    >
+                      Sil
+                    </button>
+                  )}
                 </div>
                 <p className="line-clamp-2 text-sm leading-6 text-slate-600">{note.icerik}</p>
                 {note.dosyalar?.length > 0 && (
@@ -452,7 +464,7 @@ function HizliNotGiris() {
         )}
       </SectionCard>
 
-      {modalOpen && (
+      {editable && modalOpen && (
         <FormModal
           title="Operasyon Bağlantısı"
           eyebrow="Manuel seçim"

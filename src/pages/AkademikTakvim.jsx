@@ -6,6 +6,7 @@ import SuccessMessage from "../components/SuccessMessage";
 import useStoredCollection from "../hooks/useStoredCollection";
 import takvimData from "../data/akademik-takvim.json";
 import operasyonData from "../data/operasyon-kutuphanesi.json";
+import { canEditData } from "../utils/auth";
 import { getCalendarAlert, inferOperationIds, normalizeDate } from "../utils/calendar";
 
 const dateFormatter = new Intl.DateTimeFormat("tr-TR", {
@@ -425,6 +426,7 @@ function buildVisibleMonthDates(events, academicYearStart) {
 }
 
 function AkademikTakvim() {
+  const editable = canEditData();
   const { records: events, addRecord, upsertRecords, clearRecords } = useStoredCollection(
     "akademikTakvimRecords",
     takvimData,
@@ -691,7 +693,7 @@ function AkademikTakvim() {
       )}
 
       {/* Excel önizleme bandı */}
-      {previewRows.length > 0 && (
+      {editable && previewRows.length > 0 && (
         <div className="flex items-center justify-between gap-4 rounded-2xl border border-[#00377B]/30 bg-[#EEF3FA] px-5 py-4">
           <div>
             <p className="font-semibold text-[#1F2D5C]">{previewRows.length} kayıt takvime önizlendi</p>
@@ -717,28 +719,32 @@ function AkademikTakvim() {
           <h2 className="text-xl font-bold text-[#1F2D5C]">2026-2027 Akademik Yılı</h2>
         </div>
         <div className="ml-auto flex flex-wrap gap-2">
-          <input ref={fileInputRef} type="file" accept=".xlsx,.xls" onChange={handleExcelFile} className="hidden" />
-          <button type="button" onClick={() => fileInputRef.current?.click()}
-            className="rounded-xl border border-[#D6DEEA] bg-white px-3 py-2 text-sm font-medium text-[#1F2D5C] hover:border-[#00377B]">
-            Excel Yükle
-          </button>
-          <button type="button" onClick={() => setModalOpen(true)}
-            className="rounded-xl bg-[#00377B] px-3 py-2 text-sm font-medium text-white hover:bg-[#1F2D5C]">
-            + Olay Ekle
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              if (window.confirm("Kullanıcı tarafından içe aktarılan takvim kayıtları silinecek. Demo kayıtlar korunur. Devam?")) {
-                clearRecords();
-                setPreviewRows([]);
-                setSuccessMessage("İçe aktarılan takvim kayıtları temizlendi. Demo kayıtlar korunur.");
-              }
-            }}
-            className="rounded-xl border border-red-200 bg-white px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
-          >
-            Sıfırla
-          </button>
+          {editable && (
+            <>
+              <input ref={fileInputRef} type="file" accept=".xlsx,.xls" onChange={handleExcelFile} className="hidden" />
+              <button type="button" onClick={() => fileInputRef.current?.click()}
+                className="rounded-xl border border-[#D6DEEA] bg-white px-3 py-2 text-sm font-medium text-[#1F2D5C] hover:border-[#00377B]">
+                Excel Yükle
+              </button>
+              <button type="button" onClick={() => setModalOpen(true)}
+                className="rounded-xl bg-[#00377B] px-3 py-2 text-sm font-medium text-white hover:bg-[#1F2D5C]">
+                + Olay Ekle
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (window.confirm("Kullanıcı tarafından içe aktarılan takvim kayıtları silinecek. Demo kayıtlar korunur. Devam?")) {
+                    clearRecords();
+                    setPreviewRows([]);
+                    setSuccessMessage("İçe aktarılan takvim kayıtları temizlendi. Demo kayıtlar korunur.");
+                  }
+                }}
+                className="rounded-xl border border-red-200 bg-white px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
+              >
+                Sıfırla
+              </button>
+            </>
+          )}
           <div className="flex rounded-xl border border-[#D6DEEA] bg-[#F8FAFD] p-0.5">
             {["Yıllık", "Aylık", "Liste"].map((v) => (
               <button key={v} type="button" onClick={() => setViewMode(v)}
@@ -908,10 +914,12 @@ function AkademikTakvim() {
                         <Badge tone={alert.tone}>{alert.label}</Badge>
                       </td>
                       <td className="px-4 py-3">
-                        <button type="button" onClick={() => openEditModal(item)}
-                          className="rounded-lg border border-[#D6DEEA] px-2.5 py-1 text-xs font-medium text-[#1F2D5C] hover:border-[#00377B] hover:text-[#00377B]">
-                          Düzenle
-                        </button>
+                        {editable && (
+                          <button type="button" onClick={() => openEditModal(item)}
+                            className="rounded-lg border border-[#D6DEEA] px-2.5 py-1 text-xs font-medium text-[#1F2D5C] hover:border-[#00377B] hover:text-[#00377B]">
+                            Düzenle
+                          </button>
+                        )}
                       </td>
                     </tr>
                   );
@@ -922,7 +930,7 @@ function AkademikTakvim() {
       )}
 
       {/* Olay ekleme modalı */}
-      {modalOpen && (
+      {editable && modalOpen && (
         <FormModal
           title={editingEventId ? "Akademik Olay Düzenle" : "Akademik Olay Ekle"}
           onClose={() => { setModalOpen(false); setEditingEventId(null); setFormData(emptyForm); }}

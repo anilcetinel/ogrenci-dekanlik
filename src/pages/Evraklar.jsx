@@ -6,6 +6,7 @@ import SectionCard from "../components/SectionCard";
 import SuccessMessage from "../components/SuccessMessage";
 import useStoredCollection from "../hooks/useStoredCollection";
 import evrakData from "../data/evraklar.json";
+import { canEditData } from "../utils/auth";
 import { extractTextFromFile, formatFileSize, getDocumentType } from "../utils/fileText";
 
 const tabs = ["Mail Şablonları", "Excel Dosyaları", "Resmi Yazılar", "Formlar"];
@@ -19,6 +20,7 @@ const emptyForm = {
 };
 
 function Evraklar() {
+  const editable = canEditData();
   const { records: docs, addRecord, deleteRecord } = useStoredCollection("evrakRecords", evrakData);
   const [activeTab, setActiveTab] = useState(tabs[0]);
   const [modalOpen, setModalOpen] = useState(false);
@@ -103,19 +105,23 @@ function Evraklar() {
         title="Kaynak Evrak ve Şablon Arşivi"
         action={
           <div className="flex flex-wrap gap-2">
-            <Link
-              to="/hizli-not"
-              className="rounded-xl border border-[#D6DEEA] bg-white px-4 py-2.5 text-sm font-medium text-[#1F2D5C] transition hover:border-[#00377B]"
-            >
-              Dosyadan Not Çıkar
-            </Link>
-            <button
-              type="button"
-              onClick={() => setModalOpen(true)}
-              className="rounded-xl bg-[#00377B] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[#1F2D5C]"
-            >
-              Yeni Evrak / Şablon Ekle
-            </button>
+            {editable && (
+              <>
+                <Link
+                  to="/hizli-not"
+                  className="rounded-xl border border-[#D6DEEA] bg-white px-4 py-2.5 text-sm font-medium text-[#1F2D5C] transition hover:border-[#00377B]"
+                >
+                  Dosyadan Not Çıkar
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => setModalOpen(true)}
+                  className="rounded-xl bg-[#00377B] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[#1F2D5C]"
+                >
+                  Yeni Evrak / Şablon Ekle
+                </button>
+              </>
+            )}
           </div>
         }
       >
@@ -154,13 +160,15 @@ function Evraklar() {
                   <span className="rounded-xl border border-[#D6DEEA] bg-[#F8FAFD] px-3 py-2 text-xs font-medium text-[#1F2D5C]">
                     Kayıt
                   </span>
-                  <button
-                    type="button"
-                    onClick={() => handleDelete(doc)}
-                    className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-medium text-red-700"
-                  >
-                    Sil
-                  </button>
+                  {editable && (
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(doc)}
+                      className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-medium text-red-700"
+                    >
+                      Sil
+                    </button>
+                  )}
                 </div>
               </div>
               <h3 className="mt-4 text-lg font-semibold text-[#1F2D5C]">{doc.ad}</h3>
@@ -182,7 +190,7 @@ function Evraklar() {
         </SectionCard>
       )}
 
-      {modalOpen && (
+      {editable && modalOpen && (
         <FormModal
           title="Evrak / Şablon Girişi"
           onClose={() => setModalOpen(false)}

@@ -1,22 +1,29 @@
 import { useState } from "react";
-
-const SESSION_KEY = "sau_dekanlik_auth";
-const CORRECT_PIN = import.meta.env.VITE_APP_PIN || "sau2026";
+import {
+  AUTH_ROLES,
+  AUTH_SESSION_KEY,
+  getAccessPins,
+  setAuthenticatedRole,
+} from "../utils/auth";
 
 function PinGate({ children }) {
   const [authenticated, setAuthenticated] = useState(
-    () => sessionStorage.getItem(SESSION_KEY) === "ok",
+    () => sessionStorage.getItem(AUTH_SESSION_KEY) === "ok",
   );
   const [pin, setPin] = useState("");
   const [error, setError] = useState(false);
   const [shake, setShake] = useState(false);
+  const { adminPin, viewerPin } = getAccessPins();
 
   if (authenticated) return children;
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (pin === CORRECT_PIN) {
-      sessionStorage.setItem(SESSION_KEY, "ok");
+    if (pin === adminPin) {
+      setAuthenticatedRole(AUTH_ROLES.ADMIN);
+      setAuthenticated(true);
+    } else if (viewerPin && pin === viewerPin) {
+      setAuthenticatedRole(AUTH_ROLES.VIEWER);
       setAuthenticated(true);
     } else {
       setError(true);
@@ -65,6 +72,9 @@ function PinGate({ children }) {
               Yanlış kod. Tekrar deneyin.
             </p>
           )}
+          <p className="mt-3 text-center text-xs leading-5 text-white/35">
+            Yönetici kodu veri girişi sağlar. İzleyici kodu yalnızca görüntüleme içindir.
+          </p>
           <button
             type="submit"
             className="mt-4 w-full rounded-xl bg-[#F58220] py-3 text-sm font-bold text-white transition hover:bg-[#d96e10] active:scale-95"
