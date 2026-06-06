@@ -2,7 +2,7 @@ import { useState } from "react";
 import { getSharedStorageInfo, isSharedStorageEnabled, upsertSharedRecords } from "../utils/sharedStorage";
 import { canEditData } from "../utils/auth";
 import { readStoredCollection } from "../utils/storage";
-import { getSharedFileInfo } from "../utils/sharedFiles";
+import { getSharedFileInfo, testSharedFileStorage } from "../utils/sharedFiles";
 
 const COLLECTIONS = [
   { key: "akademikTakvimRecords", label: "Akademik Takvim" },
@@ -21,6 +21,7 @@ function Ayarlar() {
   const [importStatus, setImportStatus] = useState("");
   const [counts, setCounts] = useState(() => Object.fromEntries(COLLECTIONS.map((c) => [c.key, getCount(c.key)])));
   const [syncing, setSyncing] = useState(false);
+  const [testingStorage, setTestingStorage] = useState(false);
   const sharedStorageInfo = getSharedStorageInfo();
   const sharedFileInfo = getSharedFileInfo();
 
@@ -48,6 +49,20 @@ function Ayarlar() {
       setImportStatus("error:Ortak veri alanına aktarım başarısız oldu. Supabase tablo ve izinlerini kontrol edin.");
     } finally {
       setSyncing(false);
+    }
+  };
+
+  const handleStorageTest = async () => {
+    setTestingStorage(true);
+    try {
+      const result = await testSharedFileStorage();
+      if (result.ok) {
+        setImportStatus(`success:Storage testi başarılı. Test dosyası yüklendi: ${result.publicUrl}`);
+      } else {
+        setImportStatus(`error:Storage testi başarısız. Bucket/policy kontrol edin. Detay: ${result.reason}`);
+      }
+    } finally {
+      setTestingStorage(false);
     }
   };
 
@@ -181,18 +196,29 @@ function Ayarlar() {
         <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-5 text-amber-800">
           Büyük PDF/Word/Excel dosyalarının herkes tarafından indirilebilir kalması için Supabase Storage içinde
           <strong> {sharedFileInfo.bucket}</strong> adlı public bucket oluşturulmalı ve anon kullanıcıya upload/read izni verilmelidir.
+          Bunun için projedeki <strong>supabase-storage.sql</strong> dosyasını Supabase SQL Editor içinde çalıştırın.
           Bucket yoksa uygulama kaydı bozmaz; küçük dosyaları kayıt içine, büyük dosyalarda özet/metni saklar.
         </div>
 
         {editable && (
-          <button
-            type="button"
-            onClick={handleSyncToSharedStorage}
-            disabled={!sharedStorageInfo.enabled || syncing || totalRecords === 0}
-            className="mt-4 rounded-xl bg-[#00377B] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#1F2D5C] disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            {syncing ? "Aktarılıyor..." : "Yerel Verileri Ortak Alana Aktar"}
-          </button>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={handleSyncToSharedStorage}
+              disabled={!sharedStorageInfo.enabled || syncing || totalRecords === 0}
+              className="rounded-xl bg-[#00377B] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#1F2D5C] disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              {syncing ? "Aktarılıyor..." : "Yerel Verileri Ortak Alana Aktar"}
+            </button>
+            <button
+              type="button"
+              onClick={handleStorageTest}
+              disabled={!sharedStorageInfo.enabled || testingStorage}
+              className="rounded-xl border border-[#D6DEEA] bg-white px-4 py-2.5 text-sm font-semibold text-[#00377B] transition hover:border-[#00377B] disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              {testingStorage ? "Test ediliyor..." : "Storage Bağlantısını Test Et"}
+            </button>
+          </div>
         )}
       </div>
 

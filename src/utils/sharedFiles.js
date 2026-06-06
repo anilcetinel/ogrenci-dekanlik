@@ -66,3 +66,13 @@ export async function uploadSharedFile(file, folder = "evraklar") {
     return { ok: false, reason: error.message || "Supabase Storage bağlantısı kurulamadı." };
   }
 }
+
+export async function testSharedFileStorage() {
+  const testFile = new File(
+    [`Storage test kaydı: ${new Date().toISOString()}`],
+    "storage-test.txt",
+    { type: "text/plain" },
+  );
+
+  return uploadSharedFile(testFile, "sistem-testleri");
+}

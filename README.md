@@ -1,6 +1,6 @@
-# Öğrenci Dekanlığı
+# Öğrenci Destek Koordinatörlüğü
 
-Sakarya Üniversitesi Öğrenci Dekanlığı için iş hafızası, faaliyet takibi, akademik takvim ve evrak yönetimi prototipi.
+Sakarya Üniversitesi Öğrenci Destek Koordinatörlüğü için iş hafızası, faaliyet takibi, akademik takvim ve evrak yönetimi prototipi.
 
 ## Yerel Çalıştırma
 
@@ -16,25 +16,34 @@ Herkesin aynı kayıtları görmesi için Supabase bağlantısı tanımlanmalıd
 
 1. Supabase üzerinde yeni proje oluşturun.
 2. SQL Editor içinde `supabase-schema.sql` dosyasındaki SQL'i çalıştırın.
-3. Yerelde `.env.example` dosyasını `.env` olarak kopyalayın ve değerleri doldurun:
+3. Büyük PDF/Word/Excel dosyalarının ortak indirilebilir kalması için SQL Editor içinde `supabase-storage.sql` dosyasındaki SQL'i de çalıştırın.
+4. Yerelde `.env.example` dosyasını `.env` olarak kopyalayın ve değerleri doldurun:
 
 ```bash
 VITE_SUPABASE_URL=https://SUPABASE-PROJE-REF.supabase.co
 VITE_SUPABASE_ANON_KEY=SUPABASE_ANON_PUBLIC_KEY
 VITE_ADMIN_PIN=sadece-sizin-bileceginiz-yonetici-kodu
 VITE_VIEWER_PIN=5-kisiyle-paylasilacak-izleyici-kodu
+VITE_SUPABASE_FILE_BUCKET=dekanlik-files
 ```
 
-4. GitHub Pages yayını için repo ayarlarında şu secret'ları ekleyin:
+5. GitHub Pages yayını için repo ayarlarında şu secret'ları ekleyin:
 
 ```text
 VITE_SUPABASE_URL
 VITE_SUPABASE_ANON_KEY
 VITE_ADMIN_PIN
 VITE_VIEWER_PIN
+VITE_SUPABASE_FILE_BUCKET
 ```
 
-5. Daha önce tarayıcıya girilmiş yerel kayıtlar varsa uygulamada `Ayarlar` sayfasından `Yerel Verileri Ortak Alana Aktar` butonunu kullanın.
+6. Daha önce tarayıcıya girilmiş yerel kayıtlar varsa uygulamada `Ayarlar` sayfasından `Yerel Verileri Ortak Alana Aktar` butonunu kullanın.
+7. Dosya yükleme için `Ayarlar` sayfasındaki `Storage Bağlantısını Test Et` butonunu kullanın.
+
+## Dosya Saklama Mantığı
+
+Supabase Storage hazırsa PDF, Word, Excel ve metin dosyaları `dekanlik-files` bucket alanına yüklenir ve Evraklar ekranında indirilebilir bağlantı oluşur.
+Storage hazır değilse uygulama kaydı bozmaz: küçük dosyalar kayıt içine gömülür, büyük dosyalarda dosyadan çıkarılan özet/metin saklanır.
 
 ## Erişim Mantığı
 
