@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import Badge from "../components/Badge";
 import FormModal from "../components/FormModal";
 import SectionCard from "../components/SectionCard";
+import SharedStatus from "../components/SharedStatus";
 import SuccessMessage from "../components/SuccessMessage";
 import useStoredCollection from "../hooks/useStoredCollection";
 import operasyonData from "../data/operasyon-kutuphanesi.json";
@@ -27,7 +28,7 @@ const emptyForm = {
 
 function OperasyonKutuphane() {
   const editable = canEditData();
-  const { records: operations, addRecord } = useStoredCollection("operasyonRecords", operasyonData);
+  const { records: operations, addRecord, syncStatus } = useStoredCollection("operasyonRecords", operasyonData);
   const [search, setSearch] = useState("");
   const [kategori, setKategori] = useState("Tümü");
   const [modalOpen, setModalOpen] = useState(false);
@@ -106,6 +107,7 @@ function OperasyonKutuphane() {
   return (
     <div className="space-y-6">
       <SuccessMessage>{successMessage}</SuccessMessage>
+      <SharedStatus syncStatus={syncStatus} count={operations.length} label="Operasyon kütüphanesi ortak veri durumu" />
 
       <SectionCard
         title="İş Hafızası Araması"

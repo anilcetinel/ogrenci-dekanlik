@@ -1,5 +1,7 @@
 import * as XLSX from "xlsx";
 
+export const EMBEDDED_FILE_SIZE_LIMIT = 750 * 1024;
+
 const fileTypeMap = {
   xlsx: "Excel Dosyaları",
   xls: "Excel Dosyaları",
@@ -22,6 +24,19 @@ export function formatFileSize(size) {
   if (!size) return "0 KB";
   if (size < 1024 * 1024) return `${Math.ceil(size / 1024)} KB`;
   return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+export function canEmbedFile(file) {
+  return file.size <= EMBEDDED_FILE_SIZE_LIMIT;
+}
+
+export function readFileAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
 }
 
 async function extractSpreadsheetText(file) {

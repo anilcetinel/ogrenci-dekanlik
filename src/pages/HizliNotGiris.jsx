@@ -9,7 +9,7 @@ import haftalikLogData from "../data/haftalik-log.json";
 import operasyonData from "../data/operasyon-kutuphanesi.json";
 import evrakData from "../data/evraklar.json";
 import { canEditData } from "../utils/auth";
-import { extractTextFromFile, formatFileSize, getDocumentType, getFileExtension } from "../utils/fileText";
+import { canEmbedFile, extractTextFromFile, formatFileSize, getDocumentType, getFileExtension, readFileAsDataUrl } from "../utils/fileText";
 import { splitLines } from "../utils/storage";
 
 const dayFmt = new Intl.DateTimeFormat("tr-TR", { day: "2-digit", month: "short" });
@@ -199,12 +199,17 @@ function HizliNotGiris() {
       const extension = getFileExtension(file.name);
       const extractedText = await extractTextFromFile(file);
       const cleanedText = cleanExtractedText(extractedText);
+      const embeddable = canEmbedFile(file);
+      const dataUrl = embeddable ? await readFileAsDataUrl(file) : "";
       nextAttachments.push({
         id: `file-${Date.now()}-${Math.random().toString(36).slice(2)}-${file.name}`,
         ad: file.name,
         tur: getDocumentType(file.name),
         boyut: formatFileSize(file.size),
         uzanti: extension,
+        mime: file.type,
+        dosyaDataUrl: dataUrl,
+        dosyaSaklandi: embeddable,
         extractedText: cleanedText || "",
         suggestedNote: buildStructuredNoteFromText(cleanedText),
         metinCikarildi: Boolean(cleanedText),
@@ -300,6 +305,11 @@ function HizliNotGiris() {
         ilgiliOperasyon: selectedOperations.map((operation) => operation.ad).join(", ") || "Hızlı Not Girişi",
         aciklama: `${dateFmt.format(new Date(formData.tarih))} tarihli hızlı nottan eklenen kaynak dosya. Boyut: ${file.boyut}.`,
         dosyaLinki: "Tarayıcı içi kaynak kaydı",
+        dosyaAdi: file.ad,
+        dosyaMime: file.mime,
+        dosyaDataUrl: file.dosyaDataUrl || "",
+        dosyaOzet: file.suggestedNote || "",
+        dosyaMetni: file.extractedText || "",
         kaynakNotId: noteId,
       });
     });
@@ -393,7 +403,10 @@ function HizliNotGiris() {
                       <div className="flex items-center justify-between gap-2 px-3 py-2.5">
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-sm font-semibold text-[#1F2D5C]">{file.ad}</p>
-                          <p className="mt-0.5 text-xs text-slate-400">{file.tur} · {file.boyut}</p>
+                          <p className="mt-0.5 text-xs text-slate-400">
+                            {file.tur} · {file.boyut}
+                            {file.dosyaSaklandi ? " · kaynak dosya saklanacak" : " · büyük dosyada özet saklanır"}
+                          </p>
                         </div>
                         <div className="flex shrink-0 items-center gap-2">
                           {file.metinCikarildi && (

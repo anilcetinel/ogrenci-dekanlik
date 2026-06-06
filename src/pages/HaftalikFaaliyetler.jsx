@@ -80,6 +80,7 @@ const boardCols = [
   { key: "yapilanlar", label: "Yapılanlar", bg: "bg-[#EEF7F0]", text: "text-[#1F4D2C]", dot: "bg-[#1F4D2C]", icon: "✓" },
   { key: "yapilacaklar", label: "Yapılacaklar", bg: "bg-[#EEF3FA]", text: "text-[#00377B]", dot: "bg-[#00377B]", icon: "→" },
   { key: "bekleyenler", label: "Bekleyenler", bg: "bg-[#FFF3E8]", text: "text-[#A34D00]", dot: "bg-[#F58220]", icon: "⏳" },
+  { key: "sorunlar", label: "Sorunlar / Riskler", bg: "bg-red-50", text: "text-red-700", dot: "bg-red-500", icon: "!" },
 ];
 
 function HaftalikFaaliyetler() {
@@ -420,8 +421,8 @@ function HaftalikFaaliyetler() {
                 </div>
               </div>
 
-              {/* 3 sütun pano */}
-              <div className="grid gap-4 md:grid-cols-3">
+              {/* Yönetici pano kolonları */}
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                 {boardCols.map((col) => {
                   const items = selectedLog[col.key] || [];
                   return (

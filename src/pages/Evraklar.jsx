@@ -8,7 +8,7 @@ import SuccessMessage from "../components/SuccessMessage";
 import useStoredCollection from "../hooks/useStoredCollection";
 import evrakData from "../data/evraklar.json";
 import { canEditData } from "../utils/auth";
-import { extractTextFromFile, formatFileSize, getDocumentType } from "../utils/fileText";
+import { canEmbedFile, extractTextFromFile, formatFileSize, getDocumentType, readFileAsDataUrl } from "../utils/fileText";
 
 const tabs = ["Mail Şablonları", "Excel Dosyaları", "Resmi Yazılar", "Formlar"];
 
@@ -107,6 +107,8 @@ function Evraklar() {
     const extractedText = await extractTextFromFile(file);
     const cleanedText = cleanExtractedText(extractedText);
     const summary = buildDocumentSummary(cleanedText);
+    const embeddable = canEmbedFile(file);
+    const dataUrl = embeddable ? await readFileAsDataUrl(file) : "";
 
     setSelectedFile(fileInfo);
     setFormData((prev) => ({
@@ -119,11 +121,18 @@ function Evraklar() {
       dosyaLinki: `Tarayıcı içi kaynak kaydı · ${fileInfo.boyut}`,
       dosyaOzet: summary,
       dosyaMetni: cleanedText.slice(0, 6000),
+      dosyaAdi: file.name,
+      dosyaMime: file.type,
+      dosyaDataUrl: dataUrl,
     }));
     setFileNotice(
       summary
-        ? "Dosya içeriği temizlendi ve açıklama alanına özet olarak aktarıldı."
-        : "Bu dosya kaynak olarak kaydedilir; bu türden otomatik metin çıkarılamadı.",
+        ? embeddable
+          ? "Dosya içeriği temizlendi, özet çıkarıldı ve küçük kaynak dosya kayda eklendi."
+          : "Dosya içeriği temizlendi ve özet çıkarıldı. Dosya büyük olduğu için sadece özet/metin saklandı."
+        : embeddable
+        ? "Bu dosya kaynak olarak kaydedildi; bu türden otomatik metin çıkarılamadı."
+        : "Dosya büyük olduğu için yalnızca kaynak bilgisi saklandı; otomatik metin çıkarılamadı.",
     );
     event.target.value = "";
   };
@@ -241,6 +250,15 @@ function Evraklar() {
                 <p className="mt-3 rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-500">
                   Kaynak: {doc.dosyaLinki}
                 </p>
+              )}
+              {doc.dosyaDataUrl && (
+                <a
+                  href={doc.dosyaDataUrl}
+                  download={doc.dosyaAdi || doc.ad}
+                  className="mt-3 inline-flex rounded-xl border border-[#D6DEEA] bg-white px-3 py-2 text-xs font-semibold text-[#00377B] hover:border-[#00377B]"
+                >
+                  Kaynak Dosyayı İndir
+                </a>
               )}
             </article>
           ))}
