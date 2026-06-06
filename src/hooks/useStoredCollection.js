@@ -45,9 +45,30 @@ function useStoredCollection(storageKey, demoRecords, options = {}) {
     }
 
     loadSharedRecords();
+    const refreshInterval = isSharedStorageEnabled()
+      ? window.setInterval(loadSharedRecords, 30000)
+      : null;
+
+    const handleFocus = () => {
+      loadSharedRecords();
+    };
+
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        loadSharedRecords();
+      }
+    };
+
+    window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
       cancelled = true;
+      if (refreshInterval) {
+        window.clearInterval(refreshInterval);
+      }
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [storageKey]);
 
