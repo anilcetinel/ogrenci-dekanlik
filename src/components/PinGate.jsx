@@ -47,7 +47,7 @@ function PinGate({ children }) {
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl border border-[#F58220]/40 bg-[#F58220]/15 text-xl font-bold text-[#F58220]">
             SAÜ
           </div>
-          <h1 className="text-xl font-bold text-white">Öğrenci Dekanlığı</h1>
+          <h1 className="text-xl font-bold text-white">Öğrenci Destek Koordinatörlüğü</h1>
           <p className="mt-1 text-sm text-white/50">Faaliyet ve Operasyon Takip Sistemi</p>
         </div>
 
@@ -84,7 +84,7 @@ function PinGate({ children }) {
         </form>
 
         <p className="mt-6 text-center text-xs text-white/25">
-          Sakarya Üniversitesi · Öğrenci Dekanlığı · 2026-2027
+          Sakarya Üniversitesi · Öğrenci Destek Koordinatörlüğü · 2026-2027
         </p>
       </div>
     </div>

@@ -426,6 +426,10 @@ function buildVisibleMonthDates(events, academicYearStart) {
   return months;
 }
 
+function safeColumnValue(row, columnIndex, fallback = "") {
+  return columnIndex !== -1 ? row[columnIndex] : fallback;
+}
+
 function AkademikTakvim() {
   const editable = canEditData();
   const sharedDebugInfo = getSharedStorageDebugInfo();
@@ -444,6 +448,7 @@ function AkademikTakvim() {
   const [successMessage, setSuccessMessage] = useState("");
   const [previewRows, setPreviewRows] = useState([]);
   const [importError, setImportError] = useState("");
+  const [importReport, setImportReport] = useState(null);
 
   const calendarEvents = (previewRows.length > 0 ? previewRows : events).filter(
     (event) => !isAcademicPeriodTitle(event.ad),
@@ -526,10 +531,10 @@ function AkademikTakvim() {
       kategori: inferCategoryFromText(
         ad,
         sectionTitle,
-        String(row[matchedColumns.kategori] || "Akademik").trim(),
+        String(safeColumnValue(row, matchedColumns.kategori, "Akademik")).trim(),
       ),
-      donem: String(row[matchedColumns.donem] || "Belirtilmedi").trim(),
-      kritiklik: String(row[matchedColumns.kritiklik] || "orta")
+      donem: String(safeColumnValue(row, matchedColumns.donem, "Belirtilmedi")).trim(),
+      kritiklik: String(safeColumnValue(row, matchedColumns.kritiklik, "orta"))
         .trim()
         .toLocaleLowerCase("tr-TR"),
       durum: "Planlandı",
@@ -541,14 +546,24 @@ function AkademikTakvim() {
   const parseSheetRows = (sheetRows) => {
     const headerInfo = findHeaderInfo(sheetRows);
     if (!headerInfo) {
-      return { headerInfo: null, parsedRows: [] };
+      return { headerInfo: null, parsedRows: [], skippedRows: [], totalDataRows: 0 };
     }
 
-    const firstDataRowIndex = headerInfo.fallbackTwoColumns ? 0 : headerInfo.headerRowIndex + 1;
+    const firstDataRowIndex = headerInfo.fallbackTwoColumns
+      ? headerInfo.firstDataRowIndex || 0
+      : headerInfo.headerRowIndex + 1;
     let currentSectionTitle = "";
     const parsedRows = [];
+    const skippedRows = [];
+    let totalDataRows = 0;
 
     sheetRows.slice(firstDataRowIndex).forEach((row, index) => {
+      const rowNumber = firstDataRowIndex + index + 1;
+      const hasContent = row.some((cell) => String(cell || "").trim());
+      if (!hasContent) {
+        return;
+      }
+
       const rawName = String(row[headerInfo.matchedColumns.ad] || "").trim();
       const startValue =
         headerInfo.matchedColumns.baslangic !== -1
@@ -558,22 +573,39 @@ function AkademikTakvim() {
 
       if (!rowHasDate && isLikelySectionHeader(rawName)) {
         currentSectionTitle = normalizeSectionTitle(rawName);
+        skippedRows.push({
+          rowNumber,
+          neden: "Bölüm/kategori başlığı olarak algılandı",
+          deger: rawName,
+        });
         return;
       }
 
+      totalDataRows += 1;
       const parsedRow = buildEventFromArrayRow(row, index, headerInfo.matchedColumns, currentSectionTitle);
       if (parsedRow && !isAcademicPeriodTitle(parsedRow.ad)) {
         parsedRows.push(parsedRow);
+        return;
       }
+
+      skippedRows.push({
+        rowNumber,
+        neden: parsedRow ? "Akademik dönem başlığı olduğu için takvime eklenmedi" : "Olay adı veya tarih okunamadı",
+        deger: row
+          .filter((cell) => String(cell || "").trim())
+          .join(" | ")
+          .slice(0, 180),
+      });
     });
 
-    return { headerInfo, parsedRows };
+    return { headerInfo, parsedRows, skippedRows, totalDataRows };
   };
 
   const handleExcelFile = async (event) => {
     const file = event.target.files?.[0];
     setImportError("");
     setPreviewRows([]);
+    setImportReport(null);
 
     if (!file) {
       return;
@@ -586,7 +618,7 @@ function AkademikTakvim() {
         const sheet = workbook.Sheets[sheetName];
         const rawRows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "", blankrows: false });
         const result = parseSheetRows(rawRows);
-        return { sheetName, ...result };
+        return { sheetName, totalRows: rawRows.length, ...result };
       });
       const bestSheet = parsedSheets.sort((a, b) => b.parsedRows.length - a.parsedRows.length)[0];
 
@@ -601,9 +633,20 @@ function AkademikTakvim() {
         sheetName: bestSheet.sheetName,
         headerRowIndex: bestSheet.headerInfo.headerRowIndex,
         matchedColumns: bestSheet.headerInfo.matchedColumns,
+        skippedRows: bestSheet.skippedRows,
       });
 
       const parsedRows = bestSheet.parsedRows;
+      setImportReport({
+        fileName: file.name,
+        sheetName: bestSheet.sheetName,
+        headerRowIndex: bestSheet.headerInfo.headerRowIndex,
+        matchedColumns: bestSheet.headerInfo.matchedColumns,
+        totalRows: bestSheet.totalRows,
+        totalDataRows: bestSheet.totalDataRows,
+        parsedCount: parsedRows.length,
+        skippedRows: bestSheet.skippedRows,
+      });
 
       if (parsedRows.length === 0) {
         setImportError(
@@ -642,6 +685,7 @@ function AkademikTakvim() {
 
       upsertRecords(rowsToSave, (item) => `${item.ad}__${item.baslangic}`);
       setPreviewRows([]);
+      setImportReport(null);
       setViewMode("Yıllık");
       setImportError("");
       setSuccessMessage("Akademik takvim olayları ortak takvime kaydedildi. Diğer kullanıcılar sayfayı yenileyince görebilir.");
@@ -722,23 +766,58 @@ function AkademikTakvim() {
 
       {/* Excel önizleme bandı */}
       {editable && previewRows.length > 0 && (
-        <div className="flex items-center justify-between gap-4 rounded-2xl border border-[#00377B]/30 bg-[#EEF3FA] px-5 py-4">
-          <div>
-            <p className="font-semibold text-[#1F2D5C]">{previewRows.length} kayıt takvime önizlendi</p>
-            <p className="mt-0.5 text-sm text-slate-500">
-              Bu aşamada yalnızca siz görürsünüz. Herkesin görmesi için "İçe Aktar"a tıklayın.
-            </p>
+        <div className="rounded-2xl border border-[#00377B]/30 bg-[#EEF3FA] px-5 py-4">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div>
+              <p className="font-semibold text-[#1F2D5C]">{previewRows.length} kayıt takvime önizlendi</p>
+              <p className="mt-0.5 text-sm text-slate-500">
+                Bu aşamada yalnızca siz görürsünüz. Herkesin görmesi için "İçe Aktar"a tıklayın.
+              </p>
+            </div>
+            <div className="flex shrink-0 gap-2">
+              <button type="button" onClick={importPreviewRows}
+                className="rounded-xl bg-[#00377B] px-4 py-2.5 text-sm font-medium text-white hover:bg-[#1F2D5C]">
+                İçe Aktar
+              </button>
+              <button type="button" onClick={() => { setPreviewRows([]); setImportReport(null); }}
+                className="rounded-xl border border-[#D6DEEA] bg-white px-4 py-2.5 text-sm font-medium text-slate-600">
+                İptal
+              </button>
+            </div>
           </div>
-          <div className="flex shrink-0 gap-2">
-            <button type="button" onClick={importPreviewRows}
-              className="rounded-xl bg-[#00377B] px-4 py-2.5 text-sm font-medium text-white hover:bg-[#1F2D5C]">
-              İçe Aktar
-            </button>
-            <button type="button" onClick={() => setPreviewRows([])}
-              className="rounded-xl border border-[#D6DEEA] bg-white px-4 py-2.5 text-sm font-medium text-slate-600">
-              İptal
-            </button>
-          </div>
+          {importReport && (
+            <div className="mt-4 grid gap-3 md:grid-cols-4">
+              {[
+                { label: "Dosya", value: importReport.fileName },
+                { label: "Sayfa", value: importReport.sheetName },
+                { label: "Okunan satır", value: importReport.totalDataRows },
+                { label: "Takvime yerleşen", value: importReport.parsedCount },
+              ].map((item) => (
+                <div key={item.label} className="rounded-xl border border-white/70 bg-white px-3 py-2">
+                  <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">{item.label}</p>
+                  <p className="mt-1 truncate text-sm font-semibold text-[#1F2D5C]">{item.value}</p>
+                </div>
+              ))}
+              {importReport.skippedRows?.length > 0 && (
+                <details className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900 md:col-span-4">
+                  <summary className="cursor-pointer font-semibold">
+                    {importReport.skippedRows.length} satır takvime eklenmedi, ayrıntıları göster
+                  </summary>
+                  <div className="mt-2 max-h-40 space-y-1 overflow-auto pr-2 text-xs">
+                    {importReport.skippedRows.slice(0, 20).map((row) => (
+                      <p key={`${row.rowNumber}-${row.deger}`}>
+                        <span className="font-semibold">Satır {row.rowNumber}:</span> {row.neden}
+                        {row.deger ? <span className="text-amber-800"> · {row.deger}</span> : null}
+                      </p>
+                    ))}
+                    {importReport.skippedRows.length > 20 && (
+                      <p className="font-medium">İlk 20 satır gösteriliyor.</p>
+                    )}
+                  </div>
+                </details>
+              )}
+            </div>
+          )}
         </div>
       )}
 

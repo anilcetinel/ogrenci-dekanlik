@@ -119,7 +119,7 @@ function Dashboard() {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/45">
-              Sakarya Üniversitesi · Öğrenci Dekanlığı
+              Sakarya Üniversitesi · Öğrenci Destek Koordinatörlüğü
             </p>
             <h1 className="mt-1 text-xl font-bold">
               {weekdayFormatter.format(today)}, {dateFormatter.format(today)}

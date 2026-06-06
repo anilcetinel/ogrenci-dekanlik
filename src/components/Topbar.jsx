@@ -15,7 +15,7 @@ function Topbar({ title, onMenuClick }) {
             ☰
           </button>
           <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Öğrenci Dekanlığı</p>
+            <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Öğrenci Destek Koordinatörlüğü</p>
             <h2 className="text-xl font-semibold text-[#1F2D5C]">{title}</h2>
           </div>
         </div>

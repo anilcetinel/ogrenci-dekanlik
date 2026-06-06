@@ -23,7 +23,7 @@ function Layout() {
     if (location.pathname.startsWith("/operasyonlar/")) {
       return "Operasyon Detayı";
     }
-    return titles[location.pathname] || "Öğrenci Dekanlığı";
+    return titles[location.pathname] || "Öğrenci Destek Koordinatörlüğü";
   }, [location.pathname]);
 
   return (

@@ -17,7 +17,7 @@ const dateFmt = new Intl.DateTimeFormat("tr-TR", { day: "2-digit", month: "long"
 const emptyForm = {
   tarih: new Date().toISOString().slice(0, 10),
   kaynak: "Serbest not",
-  hazirlayan: "Öğrenci Dekanlığı",
+  hazirlayan: "Öğrenci Destek Koordinatörlüğü",
   icerik: "",
   operasyonIds: [],
 };
@@ -74,6 +74,52 @@ function splitNoteSentences(value) {
     .flatMap((line) => line.split(/(?<=[.!?])\s+|;\s+/))
     .map((item) => item.replace(/^[-•*\d.)\s]+/, "").trim())
     .filter(Boolean);
+}
+
+function cleanExtractedText(value) {
+  const seen = new Set();
+  return String(value || "")
+    .replace(/\r/g, "\n")
+    .split("\n")
+    .map((line) => line.replace(/\s+/g, " ").trim())
+    .filter((line) => {
+      if (!line || line.length < 4) return false;
+      const normalized = line.toLocaleLowerCase("tr-TR");
+      if (/^sayfa\s+\d+/.test(normalized) || /^\d+\s*$/.test(normalized)) return false;
+      if (normalized.includes("sakarya üniversitesi") && line.length < 35) return false;
+      if (normalized.includes("prototip") || normalized.includes("kişisel veri")) return false;
+      if (seen.has(normalized)) return false;
+      seen.add(normalized);
+      return true;
+    })
+    .join("\n");
+}
+
+function buildStructuredNoteFromText(value) {
+  const sentences = splitNoteSentences(cleanExtractedText(value));
+  const buckets = { yapilanlar: [], yapilacaklar: [], bekleyenler: [], sorunlar: [] };
+
+  sentences.forEach((sentence) => {
+    const bucket = classifySentence(sentence);
+    if (buckets[bucket].length < 8) {
+      buckets[bucket].push(sentence);
+    }
+  });
+
+  const sections = [
+    ["Yapılanlar", buckets.yapilanlar],
+    ["Yapılacaklar", buckets.yapilacaklar],
+    ["Bekleyenler", buckets.bekleyenler],
+    ["Sorunlar / Riskler", buckets.sorunlar],
+  ].filter(([, items]) => items.length > 0);
+
+  if (sections.length === 0) {
+    return sentences.slice(0, 12).join("\n");
+  }
+
+  return sections
+    .map(([title, items]) => `${title}:\n${items.map((item) => `- ${item}`).join("\n")}`)
+    .join("\n\n");
 }
 
 function classifySentence(sentence) {
@@ -151,14 +197,16 @@ function HizliNotGiris() {
     for (const file of files) {
       const extension = getFileExtension(file.name);
       const extractedText = await extractTextFromFile(file);
+      const cleanedText = cleanExtractedText(extractedText);
       nextAttachments.push({
         id: `file-${Date.now()}-${Math.random().toString(36).slice(2)}-${file.name}`,
         ad: file.name,
         tur: getDocumentType(file.name),
         boyut: formatFileSize(file.size),
         uzanti: extension,
-        extractedText: extractedText || "", // ham metin — sadece önizleme için
-        metinCikarildi: Boolean(extractedText),
+        extractedText: cleanedText || "",
+        suggestedNote: buildStructuredNoteFromText(cleanedText),
+        metinCikarildi: Boolean(cleanedText),
       });
     }
 
@@ -172,6 +220,14 @@ function HizliNotGiris() {
 
   const removeAttachment = (attachmentId) => {
     setAttachedFiles((prev) => prev.filter((file) => file.id !== attachmentId));
+  };
+
+  const appendFileNote = (file) => {
+    setFormData((prev) => ({
+      ...prev,
+      icerik: [prev.icerik, file.suggestedNote || file.extractedText].filter(Boolean).join("\n\n"),
+    }));
+    setFileNotice(`${file.ad} dosyasından temizlenen not alanına aktarıldı. Kaydetmeden önce kontrol edin.`);
   };
 
   const handleDeleteNote = (note) => {
@@ -199,7 +255,7 @@ function HizliNotGiris() {
       haftaLabel,
       haftaBaslangic: weekStartDate.toISOString().slice(0, 10),
       haftaBitis: weekEndDate.toISOString().slice(0, 10),
-      hazirlayan: formData.hazirlayan || "Öğrenci Dekanlığı",
+      hazirlayan: formData.hazirlayan || "Öğrenci Destek Koordinatörlüğü",
       operasyonIds: preview.operasyonIds,
       yapilanlar: preview.yapilanlar,
       yapilacaklar: preview.yapilacaklar,
@@ -309,7 +365,7 @@ function HizliNotGiris() {
                 <div>
                   <p className="text-sm font-semibold text-[#1F2D5C]">Dosyadan bilgi çek</p>
                   <p className="mt-1 text-xs leading-5 text-slate-500">
-                    Excel, CSV, TXT, PDF ve DOCX içerikleri not alanına aktarılır. Eski .doc dosyaları kaynak evrak olarak bağlanır.
+                    Excel, CSV, TXT, PDF ve DOCX içerikleri temizlenir; gereksiz tekrarlar ayıklanıp not taslağına dönüştürülür.
                   </p>
                 </div>
                 <label className="inline-flex cursor-pointer rounded-xl bg-[#00377B] px-4 py-3 text-sm font-semibold text-white">
@@ -339,13 +395,22 @@ function HizliNotGiris() {
                         </div>
                         <div className="flex shrink-0 items-center gap-2">
                           {file.metinCikarildi && (
-                            <button
-                              type="button"
-                              onClick={() => setExpandedFile(expandedFile === file.id ? null : file.id)}
-                              className="rounded-lg border border-[#D6DEEA] px-2.5 py-1 text-xs font-medium text-[#1F2D5C] hover:border-[#00377B]"
-                            >
-                              {expandedFile === file.id ? "Gizle" : "İçeriği Görüntüle"}
-                            </button>
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => appendFileNote(file)}
+                                className="rounded-lg bg-[#00377B] px-2.5 py-1 text-xs font-medium text-white hover:bg-[#1F2D5C]"
+                              >
+                                Not Alanına Aktar
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setExpandedFile(expandedFile === file.id ? null : file.id)}
+                                className="rounded-lg border border-[#D6DEEA] px-2.5 py-1 text-xs font-medium text-[#1F2D5C] hover:border-[#00377B]"
+                              >
+                                {expandedFile === file.id ? "Gizle" : "Önizle"}
+                              </button>
+                            </>
                           )}
                           <button type="button" onClick={() => removeAttachment(file.id)}
                             className="rounded-lg border border-red-200 px-2.5 py-1 text-xs font-medium text-red-600 hover:bg-red-50">
@@ -356,10 +421,10 @@ function HizliNotGiris() {
                       {expandedFile === file.id && file.extractedText && (
                         <div className="border-t border-[#E5E7EB] bg-slate-50 px-3 py-3">
                           <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
-                            Dosya içeriği — ilgili kısımları not alanına kopyalayın
+                            Temizlenmiş not taslağı — kaydetmeden önce kontrol edin
                           </p>
                           <pre className="max-h-48 overflow-y-auto whitespace-pre-wrap text-xs leading-5 text-slate-600 font-sans">
-                            {file.extractedText}
+                            {file.suggestedNote || file.extractedText}
                           </pre>
                         </div>
                       )}

@@ -18,6 +18,7 @@ const GOLD       = "D9BF73";
 const SKY        = "A7C7E7";
 const SLIDE_W    = 13.333;
 const SLIDE_H    = 7.5;
+const UNIT_NAME  = "Öğrenci Destek Koordinatörlüğü";
 
 const dateFormatter = new Intl.DateTimeFormat("tr-TR", { day: "2-digit", month: "long", year: "numeric" });
 const shortFmt     = new Intl.DateTimeFormat("tr-TR", { day: "2-digit", month: "short" });
@@ -132,7 +133,7 @@ function addTitleSlide(pptx, title, subtitle) {
   const slide = pptx.addSlide();
   addSauBackdrop(pptx, slide);
 
-  slide.addText("ÖĞRENCİ DEKANLIĞI", {
+  slide.addText("ÖĞRENCİ DESTEK KOORDİNATÖRLÜĞÜ", {
     x: 0.8, y: 0.72, w: 4.8, h: 0.28,
     fontSize: 10, bold: true, color: SKY, fontFace: "Arial", charSpacing: 3,
   });
@@ -262,21 +263,22 @@ function addContentSlide(pptx, { title, items, color = SAU_NAVY, icon = "•", e
   });
 }
 
-function addSummarySlide(pptx, { eyebrow, yapilanlar, yapilacaklar, bekleyenler, haftaSayisi }) {
+function addSummarySlide(pptx, { eyebrow, yapilanlar, yapilacaklar, bekleyenler, sorunlar, haftaSayisi }) {
   const slide = pptx.addSlide();
   addSauBackdrop(pptx, slide, { accent: SAU_ORANGE, photoBand: false });
   addHeader(pptx, slide, "Dönem Özeti", eyebrow || "Faaliyet Panosu");
 
-  // 3 büyük sayı kartı — geniş ve dengeli
+  // 4 büyük sayı kartı: yönetici sunumunda riskleri ayrı göstermek kritik.
   const cards = [
     { label: "Tamamlanan İş", count: yapilanlar, color: GREEN,    icon: "✓", sub: "yapılan madde" },
     { label: "Planlanan İş",  count: yapilacaklar, color: SAU_NAVY, icon: "→", sub: "yapılacak madde" },
     { label: "Bekleyen",      count: bekleyenler, color: AMBER,    icon: "⏳", sub: "geri dönüş bekleniyor" },
+    { label: "Riskli Konu",   count: sorunlar, color: RED,         icon: "!", sub: "takip gerektiriyor" },
   ];
 
   cards.forEach((card, i) => {
-    const x = 0.95 + i * 4.08;
-    const w = 3.55;
+    const x = 0.72 + i * 3.16;
+    const w = 2.78;
     slide.addShape(pptx.ShapeType.roundRect, {
       x, y: 1.58, w, h: 3.85,
       fill: { color: WHITE, transparency: 88 },
@@ -294,11 +296,11 @@ function addSummarySlide(pptx, { eyebrow, yapilanlar, yapilacaklar, bekleyenler,
     });
     slide.addText(card.label, {
       x: x + 0.2, y: 2.68, w: w - 0.4, h: 0.38,
-      fontSize: 12.5, bold: true, color: "DDEBFA", fontFace: "Arial", align: "center",
+      fontSize: 11.5, bold: true, color: "DDEBFA", fontFace: "Arial", align: "center",
     });
     slide.addText(String(card.count), {
       x: x + 0.2, y: 3.1, w: w - 0.4, h: 1.15,
-      fontSize: 58, bold: true, color: WHITE, fontFace: "Georgia", align: "center",
+      fontSize: 52, bold: true, color: WHITE, fontFace: "Georgia", align: "center",
     });
     slide.addText(card.sub, {
       x: x + 0.2, y: 4.42, w: w - 0.4, h: 0.28,
@@ -372,7 +374,7 @@ function addClosingSlide(pptx) {
     x: 1.6, y: 2.15, w: 10.2, h: 0.7,
     fontSize: 34, bold: true, color: WHITE, fontFace: "Georgia", align: "center",
   });
-  slide.addText("Sakarya Üniversitesi · Öğrenci Dekanlığı", {
+  slide.addText(`Sakarya Üniversitesi · ${UNIT_NAME}`, {
     x: 1.6, y: 3.12, w: 10.2, h: 0.42,
     fontSize: 16, color: "DDEBFA", fontFace: "Arial", align: "center",
   });
@@ -429,7 +431,7 @@ function SunumHazirla() {
       const { default: PptxGenJS } = await import("pptxgenjs");
       const pptx = new PptxGenJS();
       pptx.layout = "LAYOUT_WIDE";
-      pptx.author = "Sakarya Üniversitesi Öğrenci Dekanlığı";
+      pptx.author = `Sakarya Üniversitesi ${UNIT_NAME}`;
       pptx.company = "Sakarya Üniversitesi";
       pptx.subject = sunumBasligi;
 
@@ -442,6 +444,7 @@ function SunumHazirla() {
       const allYapilanlar  = sortedLogs.flatMap((l) => l.yapilanlar  || []);
       const allYapilacaklar = sortedLogs.flatMap((l) => l.yapilacaklar || []);
       const allBekleyenler = sortedLogs.flatMap((l) => l.bekleyenler  || []);
+      const allSorunlar = sortedLogs.flatMap((l) => l.sorunlar || []);
 
       const startLog = sortedLogs[0];
       const endLog   = sortedLogs[sortedLogs.length - 1];
@@ -460,6 +463,7 @@ function SunumHazirla() {
         yapilanlar:  allYapilanlar.length,
         yapilacaklar: allYapilacaklar.length,
         bekleyenler: allBekleyenler.length,
+        sorunlar: allSorunlar.length,
         haftaSayisi: sortedLogs.length,
       });
 
@@ -486,6 +490,16 @@ function SunumHazirla() {
           color: SAU_NAVY,
           icon: "→",
           items: devamItems.slice(0, 6),
+        });
+      }
+
+      if (allSorunlar.length > 0) {
+        addContentSlide(pptx, {
+          title: "Riskler ve İzlenecek Konular",
+          eyebrow: subtitle,
+          color: RED,
+          icon: "!",
+          items: allSorunlar.slice(0, 6),
         });
       }
 

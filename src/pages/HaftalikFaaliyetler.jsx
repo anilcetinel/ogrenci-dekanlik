@@ -177,7 +177,7 @@ function HaftalikFaaliyetler() {
       yapilacaklar: splitLines(formData.yapilacaklar),
       bekleyenler: splitLines(formData.bekleyenler),
       sorunlar: splitLines(formData.sorunlar),
-      hazirlayan: formData.hazirlayan || "Öğrenci Dekanlığı",
+      hazirlayan: formData.hazirlayan || "Öğrenci Destek Koordinatörlüğü",
       operasyonIds: formData.operasyonIds || [],
     };
 

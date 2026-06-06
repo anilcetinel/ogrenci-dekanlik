@@ -80,7 +80,7 @@ function Sidebar({ mobileOpen, onClose }) {
               SAÜ
             </div>
             <div>
-              <h1 className="text-sm font-bold leading-5 text-white">Öğrenci Dekanlığı</h1>
+              <h1 className="text-sm font-bold leading-5 text-white">Öğrenci Destek Koordinatörlüğü</h1>
               <p className="mt-0.5 text-[11px] text-white/50">Faaliyet ve Takip</p>
             </div>
           </div>
