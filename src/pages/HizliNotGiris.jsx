@@ -10,6 +10,7 @@ import operasyonData from "../data/operasyon-kutuphanesi.json";
 import evrakData from "../data/evraklar.json";
 import { canEditData } from "../utils/auth";
 import { canEmbedFile, extractTextFromFile, formatFileSize, getDocumentType, getFileExtension, readFileAsDataUrl } from "../utils/fileText";
+import { uploadSharedFile } from "../utils/sharedFiles";
 import { splitLines } from "../utils/storage";
 
 const dayFmt = new Intl.DateTimeFormat("tr-TR", { day: "2-digit", month: "short" });
@@ -200,7 +201,8 @@ function HizliNotGiris() {
       const extractedText = await extractTextFromFile(file);
       const cleanedText = cleanExtractedText(extractedText);
       const embeddable = canEmbedFile(file);
-      const dataUrl = embeddable ? await readFileAsDataUrl(file) : "";
+      const uploadResult = await uploadSharedFile(file, "hizli-notlar");
+      const dataUrl = !uploadResult.ok && embeddable ? await readFileAsDataUrl(file) : "";
       nextAttachments.push({
         id: `file-${Date.now()}-${Math.random().toString(36).slice(2)}-${file.name}`,
         ad: file.name,
@@ -209,7 +211,11 @@ function HizliNotGiris() {
         uzanti: extension,
         mime: file.type,
         dosyaDataUrl: dataUrl,
-        dosyaSaklandi: embeddable,
+        dosyaPublicUrl: uploadResult.ok ? uploadResult.publicUrl : "",
+        dosyaStoragePath: uploadResult.ok ? uploadResult.path : "",
+        dosyaStorageBucket: uploadResult.ok ? uploadResult.bucket : "",
+        dosyaSaklandi: uploadResult.ok || embeddable,
+        dosyaSaklamaTipi: uploadResult.ok ? "Storage" : embeddable ? "Kayıt içi" : "Özet",
         extractedText: cleanedText || "",
         suggestedNote: buildStructuredNoteFromText(cleanedText),
         metinCikarildi: Boolean(cleanedText),
@@ -308,6 +314,9 @@ function HizliNotGiris() {
         dosyaAdi: file.ad,
         dosyaMime: file.mime,
         dosyaDataUrl: file.dosyaDataUrl || "",
+        dosyaPublicUrl: file.dosyaPublicUrl || "",
+        dosyaStoragePath: file.dosyaStoragePath || "",
+        dosyaStorageBucket: file.dosyaStorageBucket || "",
         dosyaOzet: file.suggestedNote || "",
         dosyaMetni: file.extractedText || "",
         kaynakNotId: noteId,
@@ -405,7 +414,9 @@ function HizliNotGiris() {
                           <p className="truncate text-sm font-semibold text-[#1F2D5C]">{file.ad}</p>
                           <p className="mt-0.5 text-xs text-slate-400">
                             {file.tur} · {file.boyut}
-                            {file.dosyaSaklandi ? " · kaynak dosya saklanacak" : " · büyük dosyada özet saklanır"}
+                            {file.dosyaSaklandi
+                              ? ` · ${file.dosyaSaklamaTipi} olarak saklanacak`
+                              : " · büyük dosyada özet saklanır"}
                           </p>
                         </div>
                         <div className="flex shrink-0 items-center gap-2">

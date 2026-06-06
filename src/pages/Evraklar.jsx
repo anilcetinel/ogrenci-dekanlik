@@ -9,6 +9,7 @@ import useStoredCollection from "../hooks/useStoredCollection";
 import evrakData from "../data/evraklar.json";
 import { canEditData } from "../utils/auth";
 import { canEmbedFile, extractTextFromFile, formatFileSize, getDocumentType, readFileAsDataUrl } from "../utils/fileText";
+import { uploadSharedFile } from "../utils/sharedFiles";
 
 const tabs = ["Mail Şablonları", "Excel Dosyaları", "Resmi Yazılar", "Formlar"];
 
@@ -108,7 +109,11 @@ function Evraklar() {
     const cleanedText = cleanExtractedText(extractedText);
     const summary = buildDocumentSummary(cleanedText);
     const embeddable = canEmbedFile(file);
-    const dataUrl = embeddable ? await readFileAsDataUrl(file) : "";
+    const uploadResult = await uploadSharedFile(file, "evraklar");
+    const dataUrl = !uploadResult.ok && embeddable ? await readFileAsDataUrl(file) : "";
+    const sourceLabel = uploadResult.ok
+      ? `Supabase Storage · ${fileInfo.boyut}`
+      : `Tarayıcı içi kaynak kaydı · ${fileInfo.boyut}`;
 
     setSelectedFile(fileInfo);
     setFormData((prev) => ({
@@ -118,21 +123,26 @@ function Evraklar() {
       aciklama: summary
         ? [prev.aciklama, `Dosyadan çıkarılan özet:\n${summary}`].filter(Boolean).join("\n\n")
         : prev.aciklama,
-      dosyaLinki: `Tarayıcı içi kaynak kaydı · ${fileInfo.boyut}`,
+      dosyaLinki: sourceLabel,
       dosyaOzet: summary,
       dosyaMetni: cleanedText.slice(0, 6000),
       dosyaAdi: file.name,
       dosyaMime: file.type,
       dosyaDataUrl: dataUrl,
+      dosyaPublicUrl: uploadResult.ok ? uploadResult.publicUrl : "",
+      dosyaStoragePath: uploadResult.ok ? uploadResult.path : "",
+      dosyaStorageBucket: uploadResult.ok ? uploadResult.bucket : "",
     }));
     setFileNotice(
-      summary
+      uploadResult.ok
+        ? "Dosya ortak Storage alanına yüklendi; özet/metin de kayda eklendi."
+        : summary
         ? embeddable
-          ? "Dosya içeriği temizlendi, özet çıkarıldı ve küçük kaynak dosya kayda eklendi."
-          : "Dosya içeriği temizlendi ve özet çıkarıldı. Dosya büyük olduğu için sadece özet/metin saklandı."
+          ? `Storage yüklenemedi, küçük dosya kaydın içine eklendi. Özet çıkarıldı.`
+          : `Storage yüklenemedi, dosya büyük olduğu için sadece özet/metin saklandı.`
         : embeddable
-        ? "Bu dosya kaynak olarak kaydedildi; bu türden otomatik metin çıkarılamadı."
-        : "Dosya büyük olduğu için yalnızca kaynak bilgisi saklandı; otomatik metin çıkarılamadı.",
+        ? "Storage yüklenemedi; küçük dosya kaydın içine eklendi."
+        : "Storage yüklenemedi; dosya büyük olduğu için yalnızca kaynak bilgisi saklandı.",
     );
     event.target.value = "";
   };
@@ -251,13 +261,15 @@ function Evraklar() {
                   Kaynak: {doc.dosyaLinki}
                 </p>
               )}
-              {doc.dosyaDataUrl && (
+              {(doc.dosyaPublicUrl || doc.dosyaDataUrl) && (
                 <a
-                  href={doc.dosyaDataUrl}
+                  href={doc.dosyaPublicUrl || doc.dosyaDataUrl}
                   download={doc.dosyaAdi || doc.ad}
+                  target={doc.dosyaPublicUrl ? "_blank" : undefined}
+                  rel={doc.dosyaPublicUrl ? "noreferrer" : undefined}
                   className="mt-3 inline-flex rounded-xl border border-[#D6DEEA] bg-white px-3 py-2 text-xs font-semibold text-[#00377B] hover:border-[#00377B]"
                 >
-                  Kaynak Dosyayı İndir
+                  {doc.dosyaPublicUrl ? "Kaynak Dosyayı Aç / İndir" : "Kaynak Dosyayı İndir"}
                 </a>
               )}
             </article>

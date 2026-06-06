@@ -2,6 +2,7 @@ import { useState } from "react";
 import { getSharedStorageInfo, isSharedStorageEnabled, upsertSharedRecords } from "../utils/sharedStorage";
 import { canEditData } from "../utils/auth";
 import { readStoredCollection } from "../utils/storage";
+import { getSharedFileInfo } from "../utils/sharedFiles";
 
 const COLLECTIONS = [
   { key: "akademikTakvimRecords", label: "Akademik Takvim" },
@@ -21,6 +22,7 @@ function Ayarlar() {
   const [counts, setCounts] = useState(() => Object.fromEntries(COLLECTIONS.map((c) => [c.key, getCount(c.key)])));
   const [syncing, setSyncing] = useState(false);
   const sharedStorageInfo = getSharedStorageInfo();
+  const sharedFileInfo = getSharedFileInfo();
 
   const refreshCounts = () => setCounts(Object.fromEntries(COLLECTIONS.map((c) => [c.key, getCount(c.key)])));
 
@@ -167,12 +169,20 @@ function Ayarlar() {
         {sharedStorageInfo.enabled ? (
           <div className="mt-4 rounded-xl border border-[#D6DEEA] bg-[#F8FAFD] px-4 py-3 text-xs leading-5 text-slate-600">
             Tablo: <strong>{sharedStorageInfo.tableName}</strong>
+            <br />
+            Dosya bucket: <strong>{sharedFileInfo.bucket}</strong>
           </div>
         ) : (
           <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-5 text-amber-800">
             Ortak kullanım için `.env` dosyasında `VITE_SUPABASE_URL` ve `VITE_SUPABASE_ANON_KEY` tanımlanmalı.
           </div>
         )}
+
+        <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-5 text-amber-800">
+          Büyük PDF/Word/Excel dosyalarının herkes tarafından indirilebilir kalması için Supabase Storage içinde
+          <strong> {sharedFileInfo.bucket}</strong> adlı public bucket oluşturulmalı ve anon kullanıcıya upload/read izni verilmelidir.
+          Bucket yoksa uygulama kaydı bozmaz; küçük dosyaları kayıt içine, büyük dosyalarda özet/metni saklar.
+        </div>
 
         {editable && (
           <button

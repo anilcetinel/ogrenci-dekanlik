@@ -17,6 +17,17 @@ function getHeaders(extraHeaders = {}) {
   return headers;
 }
 
+export function getSharedStorageConfig() {
+  return {
+    url: SUPABASE_URL || "",
+    anonKey: SUPABASE_ANON_KEY || "",
+  };
+}
+
+export function getSharedStorageHeaders(extraHeaders = {}) {
+  return getHeaders(extraHeaders);
+}
+
 export function getSharedStorageDebugInfo() {
   return {
     hasUrl: Boolean(SUPABASE_URL),
