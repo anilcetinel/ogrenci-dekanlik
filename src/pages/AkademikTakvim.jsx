@@ -8,6 +8,7 @@ import takvimData from "../data/akademik-takvim.json";
 import operasyonData from "../data/operasyon-kutuphanesi.json";
 import { canEditData } from "../utils/auth";
 import { getCalendarAlert, inferOperationIds, normalizeDate } from "../utils/calendar";
+import { isSharedStorageEnabled, upsertSharedRecords } from "../utils/sharedStorage";
 
 const dateFormatter = new Intl.DateTimeFormat("tr-TR", {
   day: "2-digit",
@@ -620,7 +621,7 @@ function AkademikTakvim() {
     }
   };
 
-  const importPreviewRows = () => {
+  const importPreviewRows = async () => {
     const rowsToSave = previewRows.map((item, index) => ({
       ...item,
       id: item.id?.startsWith("excel-preview")
@@ -633,10 +634,20 @@ function AkademikTakvim() {
       return;
     }
 
-    upsertRecords(rowsToSave, (item) => `${item.ad}__${item.baslangic}`);
-    setPreviewRows([]);
-    setViewMode("Yıllık");
-    setSuccessMessage("Akademik takvim olayları ortak takvime kaydedildi. Diğer kullanıcılar sayfayı yenileyince görebilir.");
+    try {
+      if (isSharedStorageEnabled()) {
+        await upsertSharedRecords("akademikTakvimRecords", rowsToSave);
+      }
+
+      upsertRecords(rowsToSave, (item) => `${item.ad}__${item.baslangic}`);
+      setPreviewRows([]);
+      setViewMode("Yıllık");
+      setImportError("");
+      setSuccessMessage("Akademik takvim olayları ortak takvime kaydedildi. Diğer kullanıcılar sayfayı yenileyince görebilir.");
+    } catch (error) {
+      console.error("Akademik takvim ortak veriye kaydedilemedi:", error);
+      setImportError("Akademik takvim ortak veriye kaydedilemedi. Supabase API anahtarı, tablo izinleri veya internet bağlantısını kontrol edin.");
+    }
   };
 
   const openEditModal = (event) => {

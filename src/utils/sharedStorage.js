@@ -66,7 +66,11 @@ export async function upsertSharedRecords(collectionKey, records) {
     payload: record,
   }));
 
-  return request(getRestUrl(), {
+  const params = new URLSearchParams({
+    on_conflict: "collection_key,record_id",
+  });
+
+  return request(`${getRestUrl()}?${params.toString()}`, {
     method: "POST",
     headers: {
       Prefer: "resolution=merge-duplicates,return=representation",
