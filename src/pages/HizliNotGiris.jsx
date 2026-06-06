@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import Badge from "../components/Badge";
 import FormModal from "../components/FormModal";
 import SectionCard from "../components/SectionCard";
+import SharedStatus from "../components/SharedStatus";
 import SuccessMessage from "../components/SuccessMessage";
 import useStoredCollection from "../hooks/useStoredCollection";
 import haftalikLogData from "../data/haftalik-log.json";
@@ -157,7 +158,7 @@ function HizliNotGiris() {
     sortByDateField: "haftaBaslangic",
   });
   const { records: operations } = useStoredCollection("operasyonRecords", operasyonData);
-  const { records: notes, addRecord: addNote, deleteRecord: deleteNote } = useStoredCollection("hizliNotRecords", []);
+  const { records: notes, addRecord: addNote, deleteRecord: deleteNote, syncStatus: notesSyncStatus } = useStoredCollection("hizliNotRecords", []);
   const { addRecord: addDocument } = useStoredCollection("evrakRecords", evrakData);
   const [formData, setFormData] = useState(emptyForm);
   const [formError, setFormError] = useState("");
@@ -311,6 +312,7 @@ function HizliNotGiris() {
   return (
     <div className="space-y-6">
       <SuccessMessage>{successMessage}</SuccessMessage>
+      <SharedStatus syncStatus={notesSyncStatus} count={notes.length} label="Hızlı not ortak veri durumu" />
 
       <section className="rounded-2xl border border-[#D6DEEA] bg-gradient-to-r from-[#0E2650] to-[#1F2D5C] px-6 py-5 text-white shadow-md">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/45">Bilgi yakalama alanı</p>

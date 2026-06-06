@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import Badge from "../components/Badge";
 import SectionCard from "../components/SectionCard";
+import SharedStatus from "../components/SharedStatus";
 import StatCard from "../components/StatCard";
 import useStoredCollection from "../hooks/useStoredCollection";
 import takvimData from "../data/akademik-takvim.json";
@@ -41,15 +42,23 @@ const TYPES = [
   { key: "yapilanlar",   label: "Yapılanlar",   icon: "✓", bg: "bg-emerald-50",  text: "text-[#1F4D2C]", border: "border-emerald-200" },
   { key: "yapilacaklar", label: "Yapılacaklar",  icon: "→", bg: "bg-blue-50",     text: "text-[#00377B]", border: "border-blue-200"    },
   { key: "bekleyenler",  label: "Bekleyenler",   icon: "⏳", bg: "bg-amber-50",   text: "text-[#A34D00]", border: "border-amber-200"   },
+  { key: "sorunlar",     label: "Riskli Konular", icon: "!", bg: "bg-red-50",     text: "text-red-700",   border: "border-red-200"     },
 ];
 
 function Dashboard() {
   const editable = canEditData();
-  const { records: takvimRecords } = useStoredCollection("akademikTakvimRecords", takvimData);
-  const { records: operasyonRecords } = useStoredCollection("operasyonRecords", operasyonData);
-  const { records: logs } = useStoredCollection("haftalikLogRecords", haftalikLogData, {
+  const { records: takvimRecords, syncStatus: takvimSyncStatus } = useStoredCollection("akademikTakvimRecords", takvimData);
+  const { records: operasyonRecords, syncStatus: operasyonSyncStatus } = useStoredCollection("operasyonRecords", operasyonData);
+  const { records: logs, syncStatus: logsSyncStatus } = useStoredCollection("haftalikLogRecords", haftalikLogData, {
     sortByDateField: "haftaBaslangic",
   });
+  const dashboardSyncStatus = [takvimSyncStatus, operasyonSyncStatus, logsSyncStatus].includes("ortak-veri-hatasi")
+    ? "ortak-veri-hatasi"
+    : [takvimSyncStatus, operasyonSyncStatus, logsSyncStatus].includes("ortak-veri-baglaniyor")
+    ? "ortak-veri-baglaniyor"
+    : [takvimSyncStatus, operasyonSyncStatus, logsSyncStatus].every((status) => status === "ortak-veri-aktif")
+    ? "ortak-veri-aktif"
+    : "yerel";
 
   const today = new Date();
 
@@ -113,6 +122,11 @@ function Dashboard() {
 
   return (
     <div className="space-y-5">
+      <SharedStatus
+        syncStatus={dashboardSyncStatus}
+        count={takvimRecords.length + operasyonRecords.length + logs.length}
+        label="Yönetim paneli ortak veri durumu"
+      />
 
       {/* Üst bilgi bandı */}
       <section className="rounded-2xl border border-[#D6DEEA] bg-gradient-to-r from-[#0E2650] to-[#1F2D5C] px-6 py-5 text-white shadow-md">
@@ -162,6 +176,10 @@ function Dashboard() {
                 <span className="flex items-center gap-1.5 font-semibold text-[#A34D00]">
                   <span className="h-2 w-2 rounded-full bg-[#F58220]" />
                   {thisWeekLog.bekleyenler?.length || 0} bekliyor
+                </span>
+                <span className="flex items-center gap-1.5 font-semibold text-red-700">
+                  <span className="h-2 w-2 rounded-full bg-red-500" />
+                  {thisWeekLog.sorunlar?.length || 0} risk
                 </span>
               </div>
               <Link to="/haftalik-faaliyetler"
@@ -215,14 +233,15 @@ function Dashboard() {
       </div>
 
       {/* Stat kartları */}
-      <section className="grid gap-4 md:grid-cols-3">
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <StatCard title="Yapılanlar" value={combined.yapilanlar?.length || 0} detail={`${getMonthLabel(selectedMonth)} · ${monthLogs.length} hafta`} accent="green" />
         <StatCard title="Yapılacaklar" value={combined.yapilacaklar?.length || 0} detail="Planlanan maddeler" accent="navy" />
         <StatCard title="Bekleyenler" value={combined.bekleyenler?.length || 0} detail="Geri dönüş bekleniyor" accent="orange" />
+        <StatCard title="Riskli Konular" value={combined.sorunlar?.length || 0} detail="Takip gerektiren konular" accent="red" />
       </section>
 
       {/* Madde listesi */}
-      <section className="grid gap-4 md:grid-cols-3">
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {TYPES.map((t) => {
           const items = combined[t.key] || [];
           return (

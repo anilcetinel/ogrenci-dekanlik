@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import FormModal from "../components/FormModal";
+import SharedStatus from "../components/SharedStatus";
 import SuccessMessage from "../components/SuccessMessage";
 import useStoredCollection from "../hooks/useStoredCollection";
 import initialLogs from "../data/haftalik-log.json";
@@ -84,7 +85,7 @@ const boardCols = [
 function HaftalikFaaliyetler() {
   const editable = canEditData();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { records: logs, mergeRecord, deleteRecord } = useStoredCollection("haftalikLogRecords", initialLogs, {
+  const { records: logs, mergeRecord, deleteRecord, syncStatus } = useStoredCollection("haftalikLogRecords", initialLogs, {
     sortByDateField: "haftaBaslangic",
   });
   const { records: operations } = useStoredCollection("operasyonRecords", operasyonData);
@@ -243,6 +244,7 @@ function HaftalikFaaliyetler() {
   return (
     <div className="space-y-5">
       <SuccessMessage>{successMessage}</SuccessMessage>
+      <SharedStatus syncStatus={syncStatus} count={logs.length} label="Haftalık faaliyet ortak veri durumu" />
 
       <div className="grid gap-5 lg:grid-cols-[280px_1fr]">
 

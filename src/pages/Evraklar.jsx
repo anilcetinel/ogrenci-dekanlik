@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import Badge from "../components/Badge";
 import FormModal from "../components/FormModal";
 import SectionCard from "../components/SectionCard";
+import SharedStatus from "../components/SharedStatus";
 import SuccessMessage from "../components/SuccessMessage";
 import useStoredCollection from "../hooks/useStoredCollection";
 import evrakData from "../data/evraklar.json";
@@ -66,7 +67,7 @@ function buildDocumentSummary(value) {
 
 function Evraklar() {
   const editable = canEditData();
-  const { records: docs, addRecord, deleteRecord } = useStoredCollection("evrakRecords", evrakData);
+  const { records: docs, addRecord, deleteRecord, syncStatus } = useStoredCollection("evrakRecords", evrakData);
   const [activeTab, setActiveTab] = useState(tabs[0]);
   const [modalOpen, setModalOpen] = useState(false);
   const [formData, setFormData] = useState(emptyForm);
@@ -155,6 +156,7 @@ function Evraklar() {
   return (
     <div className="space-y-6">
       <SuccessMessage>{successMessage}</SuccessMessage>
+      <SharedStatus syncStatus={syncStatus} count={docs.length} label="Evrak arşivi ortak veri durumu" />
 
       <SectionCard
         title="Kaynak Evrak ve Şablon Arşivi"
