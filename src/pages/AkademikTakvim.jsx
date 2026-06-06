@@ -428,7 +428,7 @@ function buildVisibleMonthDates(events, academicYearStart) {
 
 function AkademikTakvim() {
   const editable = canEditData();
-  const { records: events, addRecord, upsertRecords, clearRecords } = useStoredCollection(
+  const { records: events, addRecord, upsertRecords, clearRecords, syncStatus } = useStoredCollection(
     "akademikTakvimRecords",
     takvimData,
   );
@@ -702,6 +702,22 @@ function AkademikTakvim() {
       {importError && (
         <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{importError}</div>
       )}
+
+      <div className={`rounded-xl border px-4 py-3 text-sm ${
+        syncStatus === "ortak-veri-aktif"
+          ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+          : syncStatus === "ortak-veri-hatasi"
+          ? "border-red-200 bg-red-50 text-red-700"
+          : syncStatus === "ortak-veri-baglaniyor"
+          ? "border-blue-200 bg-blue-50 text-[#00377B]"
+          : "border-amber-200 bg-amber-50 text-amber-800"
+      }`}>
+        <span className="font-semibold">Ortak veri durumu:</span>{" "}
+        {syncStatus === "ortak-veri-aktif" && `Bağlantı aktif · ${events.length} takvim kaydı alındı.`}
+        {syncStatus === "ortak-veri-hatasi" && "Supabase bağlantısı kurulamadı. Kayıtlar bu tarayıcıya özel görünüyor."}
+        {syncStatus === "ortak-veri-baglaniyor" && "Supabase kayıtları alınıyor..."}
+        {syncStatus === "yerel" && "Yerel mod. Supabase ayarları bu yayında görünmüyor."}
+      </div>
 
       {/* Excel önizleme bandı */}
       {editable && previewRows.length > 0 && (
