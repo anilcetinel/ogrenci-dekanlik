@@ -7,10 +7,32 @@ function getRestUrl(path = "") {
 }
 
 function getHeaders(extraHeaders = {}) {
-  return {
+  const headers = {
     apikey: SUPABASE_ANON_KEY,
     "Content-Type": "application/json",
     ...extraHeaders,
+  };
+
+  // Supabase'in eski anon key'i JWT formatındadır ve REST API'de Bearer olarak da güvenle çalışır.
+  // Yeni sb_publishable_* anahtarlar JWT olmadığı için Authorization header'ına konmaz.
+  if (SUPABASE_ANON_KEY?.startsWith("eyJ")) {
+    headers.Authorization = `Bearer ${SUPABASE_ANON_KEY}`;
+  }
+
+  return headers;
+}
+
+export function getSharedStorageDebugInfo() {
+  return {
+    hasUrl: Boolean(SUPABASE_URL),
+    hasKey: Boolean(SUPABASE_ANON_KEY),
+    keyType: SUPABASE_ANON_KEY?.startsWith("eyJ")
+      ? "legacy-anon"
+      : SUPABASE_ANON_KEY?.startsWith("sb_publishable_")
+      ? "publishable"
+      : SUPABASE_ANON_KEY
+      ? "bilinmeyen"
+      : "yok",
   };
 }
 

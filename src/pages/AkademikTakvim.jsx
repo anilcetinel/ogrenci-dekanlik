@@ -8,7 +8,7 @@ import takvimData from "../data/akademik-takvim.json";
 import operasyonData from "../data/operasyon-kutuphanesi.json";
 import { canEditData } from "../utils/auth";
 import { getCalendarAlert, inferOperationIds, normalizeDate } from "../utils/calendar";
-import { isSharedStorageEnabled, upsertSharedRecords } from "../utils/sharedStorage";
+import { getSharedStorageDebugInfo, isSharedStorageEnabled, upsertSharedRecords } from "../utils/sharedStorage";
 
 const dateFormatter = new Intl.DateTimeFormat("tr-TR", {
   day: "2-digit",
@@ -428,6 +428,7 @@ function buildVisibleMonthDates(events, academicYearStart) {
 
 function AkademikTakvim() {
   const editable = canEditData();
+  const sharedDebugInfo = getSharedStorageDebugInfo();
   const { records: events, addRecord, upsertRecords, clearRecords, syncStatus } = useStoredCollection(
     "akademikTakvimRecords",
     takvimData,
@@ -714,9 +715,9 @@ function AkademikTakvim() {
       }`}>
         <span className="font-semibold">Ortak veri durumu:</span>{" "}
         {syncStatus === "ortak-veri-aktif" && `Bağlantı aktif · ${events.length} takvim kaydı alındı.`}
-        {syncStatus === "ortak-veri-hatasi" && "Supabase bağlantısı kurulamadı. Kayıtlar bu tarayıcıya özel görünüyor."}
+        {syncStatus === "ortak-veri-hatasi" && `Supabase bağlantısı kurulamadı. Kayıtlar bu tarayıcıya özel görünüyor. Anahtar tipi: ${sharedDebugInfo.keyType}.`}
         {syncStatus === "ortak-veri-baglaniyor" && "Supabase kayıtları alınıyor..."}
-        {syncStatus === "yerel" && "Yerel mod. Supabase ayarları bu yayında görünmüyor."}
+        {syncStatus === "yerel" && `Yerel mod. Supabase ayarları bu yayında görünmüyor. URL: ${sharedDebugInfo.hasUrl ? "var" : "yok"}, Key: ${sharedDebugInfo.hasKey ? "var" : "yok"}.`}
       </div>
 
       {/* Excel önizleme bandı */}
