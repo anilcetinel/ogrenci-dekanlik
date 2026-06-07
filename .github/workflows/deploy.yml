@@ -42,7 +42,11 @@ jobs:
           VITE_VIEWER_PIN: ${{ secrets.VITE_VIEWER_PIN }}
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_SUPABASE_FILE_BUCKET: ${{ secrets.VITE_SUPABASE_FILE_BUCKET }}
         run: npm run build
+
+      - name: Add SPA fallback for GitHub Pages
+        run: cp dist/index.html dist/404.html
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
