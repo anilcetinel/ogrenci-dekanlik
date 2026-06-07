@@ -2,7 +2,6 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import Badge from "../components/Badge";
 import SectionCard from "../components/SectionCard";
-import SharedStatus from "../components/SharedStatus";
 import StatCard from "../components/StatCard";
 import useStoredCollection from "../hooks/useStoredCollection";
 import takvimData from "../data/akademik-takvim.json";
@@ -118,6 +117,17 @@ function Dashboard() {
     [monthKeys],
   );
 
+  const visibleYears = useMemo(() => Object.keys(groupedMonthKeys).sort(), [groupedMonthKeys]);
+  const selectedYear = selectedMonth.slice(0, 4);
+  const visibleMonthKeys = groupedMonthKeys[selectedYear] || monthKeys;
+
+  const thisWeekCounts = {
+    yapilanlar: thisWeekLog?.yapilanlar?.length || 0,
+    yapilacaklar: thisWeekLog?.yapilacaklar?.length || 0,
+    bekleyenler: thisWeekLog?.bekleyenler?.length || 0,
+    sorunlar: thisWeekLog?.sorunlar?.length || 0,
+  };
+
   const handleDeleteDashboardItem = (item, colKey) => {
     const log = logs.find((record) => String(record.id) === String(item.logId));
     if (!log) return;
@@ -135,11 +145,11 @@ function Dashboard() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* Üst bilgi bandı */}
       <section className="overflow-hidden rounded-3xl border border-[#D6DEEA] bg-white shadow-sm">
         <div className="h-2 bg-gradient-to-r from-[#00377B] via-[#1F2D5C] to-[#1F4D2C]" />
-        <div className="grid gap-5 p-5 lg:grid-cols-[1fr_auto] lg:items-center lg:p-6">
+        <div className="grid gap-5 p-5 lg:grid-cols-[1fr_auto] lg:items-start lg:p-6">
           <div>
             <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-slate-400">
               Öğrenci Destek Koordinatörlüğü
@@ -148,105 +158,118 @@ function Dashboard() {
               {weekdayFormatter.format(today)}, {dateFormatter.format(today)}
             </h1>
             <p className="mt-1 text-sm font-medium text-slate-500">2026-2027 Akademik Yılı · Yönetim özeti</p>
-          </div>
-
-          <div className="grid gap-2 sm:grid-cols-2 lg:min-w-[360px]">
-            <div className="rounded-2xl border border-[#D6DEEA] bg-[#F8FAFD] px-4 py-3">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Bu Hafta</p>
-              <p className="mt-1 text-base font-black text-[#00377B]">{getWeekRange(today)}</p>
-            </div>
-            <div className={`rounded-2xl border px-4 py-3 ${urgentCount > 0 ? "border-red-200 bg-red-50" : "border-emerald-200 bg-emerald-50"}`}>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Takvim Uyarısı</p>
-              <p className={`mt-1 text-base font-black ${urgentCount > 0 ? "text-red-700" : "text-[#1F4D2C]"}`}>
-                {urgentCount > 0 ? `${urgentCount} kritik konu` : "Kritik uyarı yok"}
-              </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <MiniMetric label="Yapıldı" value={thisWeekCounts.yapilanlar} color="green" />
+              <MiniMetric label="Planlı" value={thisWeekCounts.yapilacaklar} color="blue" />
+              <MiniMetric label="Bekliyor" value={thisWeekCounts.bekleyenler} color="orange" />
+              <MiniMetric label="Risk" value={thisWeekCounts.sorunlar} color="red" />
             </div>
           </div>
-        </div>
-        <div className="border-t border-[#E5E7EB] px-5 py-3 lg:px-6">
-          <SharedStatus
-            syncStatus={dashboardSyncStatus}
-            count={takvimRecords.length + operasyonRecords.length + logs.length}
-            label="Ortak veri"
-          />
-        </div>
-      </section>
 
-      {/* Bu haftanın özet kartı */}
-      <section className={`rounded-2xl border p-4 ${thisWeekLog ? "border-emerald-200 bg-[#EEF7F0]" : "border-dashed border-[#D6DEEA] bg-white"}`}>
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Bu Hafta</p>
-            <p className="mt-0.5 text-sm font-semibold text-[#1F2D5C]">{getWeekRange(today)}</p>
-          </div>
-          {thisWeekLog ? (
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="flex gap-4 text-sm">
-                <span className="flex items-center gap-1.5 font-semibold text-[#1F4D2C]">
-                  <span className="h-2 w-2 rounded-full bg-[#1F4D2C]" />
-                  {thisWeekLog.yapilanlar?.length || 0} yapıldı
-                </span>
-                <span className="flex items-center gap-1.5 font-semibold text-[#00377B]">
-                  <span className="h-2 w-2 rounded-full bg-[#00377B]" />
-                  {thisWeekLog.yapilacaklar?.length || 0} planlı
-                </span>
-                <span className="flex items-center gap-1.5 font-semibold text-[#A34D00]">
-                  <span className="h-2 w-2 rounded-full bg-[#F58220]" />
-                  {thisWeekLog.bekleyenler?.length || 0} bekliyor
-                </span>
-                <span className="flex items-center gap-1.5 font-semibold text-red-700">
-                  <span className="h-2 w-2 rounded-full bg-red-500" />
-                  {thisWeekLog.sorunlar?.length || 0} risk
-                </span>
+          <div className="space-y-2 lg:min-w-[330px]">
+            <div className="flex items-center justify-between rounded-2xl border border-[#D6DEEA] bg-[#F8FAFD] px-4 py-3">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Bu Hafta</p>
+                <p className="mt-1 text-base font-black text-[#00377B]">{getWeekRange(today)}</p>
               </div>
-              <Link to="/haftalik-faaliyetler"
-                className="rounded-xl border border-emerald-300 bg-white px-3 py-1.5 text-xs font-semibold text-[#1F4D2C] hover:bg-emerald-50">
-                Haftayı Görüntüle →
+              <Link
+                to="/haftalik-faaliyetler"
+                className="rounded-xl bg-[#00377B] px-3 py-2 text-xs font-bold text-white transition hover:bg-[#1F2D5C]"
+              >
+                {thisWeekLog ? "Haftayı Aç" : editable ? "+ Kayıt" : "Görüntüle"}
               </Link>
             </div>
-          ) : (
-            <div className="flex items-center gap-3">
-              <p className="text-sm text-slate-400">Bu hafta için henüz kayıt girilmemiş.</p>
-              <Link to="/haftalik-faaliyetler"
-                className="rounded-xl bg-[#00377B] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#1F2D5C]">
-                {editable ? "+ Haftalık Kayıt Ekle" : "Haftalıkları Görüntüle"}
-              </Link>
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
+              <StatusPill syncStatus={dashboardSyncStatus} count={takvimRecords.length + operasyonRecords.length + logs.length} />
+              <div className={`rounded-2xl border px-4 py-3 ${urgentCount > 0 ? "border-red-200 bg-red-50" : "border-emerald-200 bg-emerald-50"}`}>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Takvim Uyarısı</p>
+                <p className={`mt-1 text-sm font-black ${urgentCount > 0 ? "text-red-700" : "text-[#1F4D2C]"}`}>
+                  {urgentCount > 0 ? `${urgentCount} kritik konu` : "Kritik uyarı yok"}
+                </p>
+              </div>
             </div>
-          )}
+          </div>
         </div>
       </section>
 
       {/* Ay seçici */}
       <div className="space-y-2">
-        <div className="flex flex-col gap-3 rounded-3xl border border-[#D6DEEA] bg-white p-4 shadow-sm">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="rounded-3xl border border-[#D6DEEA] bg-white p-4 shadow-sm">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <p className="text-xs font-bold uppercase tracking-wide text-slate-400">Ay seçimi</p>
-              <p className="text-xs text-slate-500">Varsayılan olarak içinde olduğumuz ay gösterilir.</p>
+              <p className="text-xs text-slate-500">İçinde olduğumuz ay otomatik seçilir; yıl ve ayı buradan değiştirin.</p>
             </div>
-            <select
-              value={selectedMonth}
-              onChange={(event) => setSelectedMonth(event.target.value)}
-              className="rounded-xl border border-[#D6DEEA] bg-[#F8FAFD] px-3 py-2 text-sm font-semibold text-[#1F2D5C] outline-none focus:border-[#00377B]"
-            >
-              {monthKeys.map((key) => (
-                <option key={key} value={key}>{getMonthLabel(key)}</option>
+            <div className="flex flex-wrap gap-2">
+              {visibleYears.map((year) => (
+                <button
+                  key={year}
+                  type="button"
+                  onClick={() => setSelectedMonth(`${year}-${selectedMonth.slice(5, 7)}`)}
+                  className={`rounded-xl px-3 py-2 text-xs font-bold transition ${
+                    selectedYear === year
+                      ? "bg-[#1F2D5C] text-white"
+                      : "border border-[#D6DEEA] bg-white text-slate-500 hover:border-[#00377B] hover:text-[#00377B]"
+                  }`}
+                >
+                  {year}
+                </button>
               ))}
-            </select>
+              <select
+                value={selectedMonth}
+                onChange={(event) => setSelectedMonth(event.target.value)}
+                className="rounded-xl border border-[#D6DEEA] bg-[#F8FAFD] px-3 py-2 text-sm font-semibold text-[#1F2D5C] outline-none focus:border-[#00377B]"
+              >
+                {monthKeys.map((key) => (
+                  <option key={key} value={key}>{getMonthLabel(key)}</option>
+                ))}
+              </select>
+            </div>
           </div>
-          {Object.entries(groupedMonthKeys).map(([year, keys]) => (
-            <MonthGroup
-              key={year}
-              label={year}
-              keys={keys}
-              selected={selectedMonth}
-              logs={logs}
-              onSelect={setSelectedMonth}
-              getLabel={getMonthLabel}
-            />
-          ))}
+          <div className="mt-3 overflow-x-auto pb-1">
+            <div className="flex min-w-max gap-1.5">
+              {visibleMonthKeys.map((key) => {
+                const hasData = logs.some((l) => getLogMonthKey(l) === key);
+                const isSelected = selectedMonth === key;
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setSelectedMonth(key)}
+                    className={`relative rounded-xl px-3 py-2 text-xs font-semibold transition whitespace-nowrap ${
+                      isSelected
+                        ? "bg-[#00377B] text-white shadow-sm"
+                        : hasData
+                        ? "border border-[#F58220] bg-[#FFF7F1] text-[#A34D00] hover:border-[#00377B] hover:bg-white hover:text-[#1F2D5C]"
+                        : "border border-[#D6DEEA] bg-white text-slate-400 hover:border-[#00377B] hover:text-[#1F2D5C]"
+                    }`}
+                  >
+                    {getMonthLabel(key).replace(` ${selectedYear}`, "")}
+                    {hasData && !isSelected && (
+                      <span className="absolute -top-0.5 -right-0.5 h-1.5 w-1.5 rounded-full bg-[#F58220] border border-white" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </div>
       </div>
+
+      {/* Bu haftanın kayıt uyarısı */}
+      {!thisWeekLog && (
+        <section className="rounded-2xl border border-dashed border-[#D6DEEA] bg-white px-4 py-3">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm text-slate-500">Bu hafta için henüz faaliyet kaydı girilmemiş.</p>
+            <Link
+              to="/haftalik-faaliyetler"
+              className="rounded-xl bg-[#00377B] px-3 py-2 text-center text-xs font-semibold text-white hover:bg-[#1F2D5C]"
+            >
+              {editable ? "+ Haftalık Kayıt Ekle" : "Haftalıkları Görüntüle"}
+            </Link>
+          </div>
+        </section>
+      )}
 
       {/* Stat kartları */}
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -359,39 +382,52 @@ function AlertDot({ level }) {
   return <span className={`h-2 w-2 shrink-0 rounded-full ${colors[level] || "bg-slate-300"}`} />;
 }
 
-function MonthGroup({ label, keys, selected, logs, onSelect, getLabel }) {
+function MiniMetric({ label, value, color }) {
+  const styles = {
+    green: "border-emerald-200 bg-emerald-50 text-[#1F4D2C]",
+    blue: "border-blue-200 bg-blue-50 text-[#00377B]",
+    orange: "border-amber-200 bg-amber-50 text-[#A34D00]",
+    red: "border-red-200 bg-red-50 text-red-700",
+  };
+
   return (
-    <div className="flex items-center gap-2">
-      <span className="shrink-0 rounded-lg bg-[#1F2D5C] px-2.5 py-1.5 text-[11px] font-bold text-white tracking-wider">
-        {label}
-      </span>
-      <div className="overflow-x-auto pb-0.5">
-        <div className="flex gap-1.5 min-w-max">
-          {keys.map((key) => {
-            const hasData = logs.some((l) => getLogMonthKey(l) === key);
-            const isSelected = selected === key;
-            return (
-              <button
-                key={key}
-                type="button"
-                onClick={() => onSelect(key)}
-                className={`relative rounded-xl px-3 py-2 text-xs font-semibold transition whitespace-nowrap ${
-                  isSelected
-                    ? "bg-[#00377B] text-white shadow-sm"
-                    : hasData
-                    ? "border border-[#F58220] bg-[#FFF7F1] text-[#A34D00] hover:border-[#00377B] hover:bg-white hover:text-[#1F2D5C]"
-                    : "border border-[#D6DEEA] bg-white text-slate-400 hover:border-[#00377B] hover:text-[#1F2D5C]"
-                }`}
-              >
-                {getLabel(key)}
-                {hasData && !isSelected && (
-                  <span className="absolute -top-0.5 -right-0.5 h-1.5 w-1.5 rounded-full bg-[#F58220] border border-white" />
-                )}
-              </button>
-            );
-          })}
-        </div>
-      </div>
+    <div className={`rounded-2xl border px-3 py-2 ${styles[color] || styles.blue}`}>
+      <p className="text-[10px] font-bold uppercase tracking-wider opacity-70">{label}</p>
+      <p className="mt-0.5 text-xl font-black leading-none">{value}</p>
+    </div>
+  );
+}
+
+function StatusPill({ syncStatus, count }) {
+  const meta = {
+    "ortak-veri-aktif": {
+      label: "Ortak veri aktif",
+      detail: typeof count === "number" ? `${count} kayıt izleniyor` : "Kayıtlar ortak alanda",
+      className: "border-emerald-200 bg-emerald-50 text-[#1F4D2C]",
+    },
+    "ortak-veri-hatasi": {
+      label: "Ortak veri bağlantısı yok",
+      detail: "Yerel yedek gösteriliyor",
+      className: "border-red-200 bg-red-50 text-red-700",
+    },
+    "ortak-veri-baglaniyor": {
+      label: "Ortak veri alınıyor",
+      detail: "Bağlantı kontrol ediliyor",
+      className: "border-blue-200 bg-blue-50 text-[#00377B]",
+    },
+    yerel: {
+      label: "Yerel mod",
+      detail: "Supabase ayarı görünmüyor",
+      className: "border-amber-200 bg-amber-50 text-[#A34D00]",
+    },
+  };
+  const current = meta[syncStatus] || meta.yerel;
+
+  return (
+    <div className={`rounded-2xl border px-4 py-3 ${current.className}`}>
+      <p className="text-[10px] font-bold uppercase tracking-wider opacity-70">Veri Durumu</p>
+      <p className="mt-1 text-sm font-black">{current.label}</p>
+      <p className="mt-0.5 text-[11px] opacity-75">{current.detail}</p>
     </div>
   );
 }
