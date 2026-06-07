@@ -56,12 +56,9 @@ function getWeekKey(date) {
   return weekStart(date).toISOString().slice(0, 10);
 }
 
-const SISTEM_BASLANGIC = new Date(2026, 5, 8); // 8 Haziran 2026 (Pazartesi)
-
 function defaultEmptyForm() {
-  // Bugün başlangıç tarihinden önceyse ilk haftayı kullan, değilse bu haftayı kullan
   const bugun = new Date();
-  const baslangic = bugun >= SISTEM_BASLANGIC ? weekStart(bugun) : new Date(SISTEM_BASLANGIC);
+  const baslangic = weekStart(bugun);
   const bitis = new Date(baslangic);
   bitis.setDate(baslangic.getDate() + 6);
   return {
@@ -91,23 +88,32 @@ function HaftalikFaaliyetler() {
   });
   const { records: operations } = useStoredCollection("operasyonRecords", operasyonData);
 
-  // Takvim başlangıcı: 8 Haziran 2026 veya en son kayıtlı hafta
+  // Ortak veri sonradan yüklenebildiği için başlangıç tarihi dinamik tutulur.
   const defaultDate = useMemo(() => {
     if (logs.length > 0) return new Date(logs[0].haftaBaslangic);
-    const bugun = new Date();
-    return bugun >= SISTEM_BASLANGIC ? bugun : new Date(SISTEM_BASLANGIC);
+    return new Date();
   }, [logs]);
 
   const [currentMonth, setCurrentMonth] = useState(() => new Date(defaultDate.getFullYear(), defaultDate.getMonth(), 1));
   const [selectedDate, setSelectedDate] = useState(() => {
-    // 8 Haziran'ın haftasını seç (Pzt 8 Haz)
-    return logs.length > 0 ? new Date(logs[0].haftaBaslangic) : new Date(SISTEM_BASLANGIC);
+    return logs.length > 0 ? new Date(logs[0].haftaBaslangic) : new Date();
   });
   const [modalOpen, setModalOpen] = useState(false);
   const [formData, setFormData] = useState(defaultEmptyForm);
   const [editingItem, setEditingItem] = useState(null); // { colKey, index, text }
   const [formError, setFormError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+  const [userSelectedWeek, setUserSelectedWeek] = useState(false);
+
+  useEffect(() => {
+    if (logs.length === 0 || userSelectedWeek) return;
+    const hasSelectedLog = logs.some((log) => sameWeek(log.haftaBaslangic, selectedDate));
+    if (!hasSelectedLog) {
+      const latestLogDate = new Date(logs[0].haftaBaslangic);
+      setSelectedDate(latestLogDate);
+      setCurrentMonth(new Date(latestLogDate.getFullYear(), latestLogDate.getMonth(), 1));
+    }
+  }, [logs, selectedDate, userSelectedWeek]);
 
   useEffect(() => {
     const operationId = searchParams.get("operasyonId");
@@ -293,7 +299,10 @@ function HaftalikFaaliyetler() {
                   <button
                     key={day.toISOString()}
                     type="button"
-                    onClick={() => setSelectedDate(day)}
+                    onClick={() => {
+                      setUserSelectedWeek(true);
+                      setSelectedDate(day);
+                    }}
                     title={hasEntry ? "Bu haftada faaliyet kaydı var" : "Bu haftayı seç"}
                     aria-label={`${dayFmt.format(day)} tarihinin haftasını seç${hasEntry ? ", kayıt var" : ""}`}
                     className={`relative rounded-md py-1.5 text-[12px] font-medium transition
@@ -329,7 +338,10 @@ function HaftalikFaaliyetler() {
                     <button
                       key={log.id}
                       type="button"
-                      onClick={() => setSelectedDate(new Date(log.haftaBaslangic))}
+                      onClick={() => {
+                        setUserSelectedWeek(true);
+                        setSelectedDate(new Date(log.haftaBaslangic));
+                      }}
                       className={`w-full rounded-xl border px-3 py-2 text-left text-xs transition ${
                         isActive
                           ? "border-[#00377B] bg-[#EEF3FA] text-[#00377B]"

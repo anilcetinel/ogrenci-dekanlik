@@ -325,7 +325,7 @@ function HizliNotGiris() {
 
     setFormData({ ...emptyForm, tarih: formData.tarih, hazirlayan: formData.hazirlayan });
     setAttachedFiles([]);
-    setSuccessMessage("Hızlı not haftalık faaliyet kaydına işlendi.");
+    setSuccessMessage(`Hızlı not ${haftaLabel} kaydına işlendi. Haftalık Faaliyetler sayfasında bu haftayı seçerek görebilirsiniz.`);
   };
 
   return (
@@ -339,6 +339,10 @@ function HizliNotGiris() {
         <p className="mt-1 max-w-3xl text-sm leading-6 text-white/65">
           Mail, WhatsApp, toplantı notu veya telefon görüşmesi gibi dağınık bilgileri buraya yapıştırın.
           Sistem notu haftalık faaliyet panosuna yapılan, yapılacak, bekleyen ve risk başlıklarıyla işler.
+        </p>
+        <p className="mt-3 rounded-xl border border-white/15 bg-white/10 px-3 py-2 text-xs leading-5 text-white/75">
+          Kaydedilen not, seçtiğiniz tarihin haftalık faaliyet kaydına otomatik bağlanır. Örneğin 7 Haziran tarihli not,
+          1-7 Haziran haftasının panosunda görünür.
         </p>
       </section>
 
