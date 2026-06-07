@@ -34,10 +34,9 @@ function getWeekRange(date) {
 }
 
 const TYPES = [
-  { key: "yapilanlar",   label: "Yapılanlar",   icon: "✓", bg: "bg-emerald-50",  text: "text-[#1F4D2C]", border: "border-emerald-200" },
-  { key: "yapilacaklar", label: "Yapılacaklar",  icon: "→", bg: "bg-blue-50",     text: "text-[#00377B]", border: "border-blue-200"    },
-  { key: "bekleyenler",  label: "Bekleyenler",   icon: "⏳", bg: "bg-amber-50",   text: "text-[#A34D00]", border: "border-amber-200"   },
-  { key: "sorunlar",     label: "Riskli Konular", icon: "!", bg: "bg-red-50",     text: "text-red-700",   border: "border-red-200"     },
+  { key: "yapilanlar",   label: "Yapılanlar",   icon: "✓", bg: "bg-[#EEF3FA]", text: "text-[#00377B]", border: "border-[#BFD0E6]" },
+  { key: "yapilacaklar", label: "Yapılacaklar", icon: "→", bg: "bg-[#EEF3FA]", text: "text-[#00377B]", border: "border-[#BFD0E6]" },
+  { key: "bekleyenler",  label: "Bekleyenler",  icon: "•", bg: "bg-[#F8FAFD]", text: "text-[#1F2D5C]", border: "border-[#D6DEEA]" },
 ];
 
 function Dashboard() {
@@ -125,7 +124,6 @@ function Dashboard() {
     yapilanlar: thisWeekLog?.yapilanlar?.length || 0,
     yapilacaklar: thisWeekLog?.yapilacaklar?.length || 0,
     bekleyenler: thisWeekLog?.bekleyenler?.length || 0,
-    sorunlar: thisWeekLog?.sorunlar?.length || 0,
   };
 
   const handleDeleteDashboardItem = (item, colKey) => {
@@ -159,10 +157,9 @@ function Dashboard() {
             </h1>
             <p className="mt-1 text-sm font-medium text-slate-500">2026-2027 Akademik Yılı · Yönetim özeti</p>
             <div className="mt-4 flex flex-wrap gap-2">
-              <MiniMetric label="Yapıldı" value={thisWeekCounts.yapilanlar} color="green" />
+              <MiniMetric label="Yapıldı" value={thisWeekCounts.yapilanlar} color="blue" />
               <MiniMetric label="Planlı" value={thisWeekCounts.yapilacaklar} color="blue" />
-              <MiniMetric label="Bekliyor" value={thisWeekCounts.bekleyenler} color="orange" />
-              <MiniMetric label="Risk" value={thisWeekCounts.sorunlar} color="red" />
+              <MiniMetric label="Bekliyor" value={thisWeekCounts.bekleyenler} color="slate" />
             </div>
           </div>
 
@@ -181,9 +178,9 @@ function Dashboard() {
             </div>
             <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
               <StatusPill syncStatus={dashboardSyncStatus} count={takvimRecords.length + operasyonRecords.length + logs.length} />
-              <div className={`rounded-2xl border px-4 py-3 ${urgentCount > 0 ? "border-red-200 bg-red-50" : "border-emerald-200 bg-emerald-50"}`}>
+              <div className={`rounded-2xl border px-4 py-3 ${urgentCount > 0 ? "border-red-200 bg-red-50" : "border-[#BFD0E6] bg-[#EEF3FA]"}`}>
                 <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Takvim Uyarısı</p>
-                <p className={`mt-1 text-sm font-black ${urgentCount > 0 ? "text-red-700" : "text-[#1F4D2C]"}`}>
+                <p className={`mt-1 text-sm font-black ${urgentCount > 0 ? "text-red-700" : "text-[#00377B]"}`}>
                   {urgentCount > 0 ? `${urgentCount} kritik konu` : "Kritik uyarı yok"}
                 </p>
               </div>
@@ -272,15 +269,14 @@ function Dashboard() {
       )}
 
       {/* Stat kartları */}
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <StatCard title="Yapılanlar" value={combined.yapilanlar?.length || 0} detail={`${getMonthLabel(selectedMonth)} · ${monthLogs.length} hafta`} accent="green" />
+      <section className="grid gap-4 md:grid-cols-3">
+        <StatCard title="Yapılanlar" value={combined.yapilanlar?.length || 0} detail={`${getMonthLabel(selectedMonth)} · ${monthLogs.length} hafta`} accent="navy" />
         <StatCard title="Yapılacaklar" value={combined.yapilacaklar?.length || 0} detail="Planlanan maddeler" accent="navy" />
-        <StatCard title="Bekleyenler" value={combined.bekleyenler?.length || 0} detail="Geri dönüş bekleniyor" accent="orange" />
-        <StatCard title="Riskli Konular" value={combined.sorunlar?.length || 0} detail="Takip gerektiren konular" accent="red" />
+        <StatCard title="Bekleyenler" value={combined.bekleyenler?.length || 0} detail="Geri dönüş bekleniyor" accent="navy" />
       </section>
 
       {/* Madde listesi */}
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <section className="grid gap-4 lg:grid-cols-2 xl:grid-cols-[minmax(0,1.25fr)_minmax(0,1.25fr)_minmax(0,0.8fr)]">
         {TYPES.map((t) => {
           const items = combined[t.key] || [];
           return (
@@ -290,9 +286,9 @@ function Dashboard() {
                 <span className={`rounded-full bg-white/70 px-2 py-0.5 text-[10px] font-semibold ${t.text}`}>{items.length}</span>
               </div>
               {items.length > 0 ? (
-                <ul className="space-y-1.5 max-h-64 overflow-y-auto pr-1">
+                <ul className="space-y-2 max-h-96 overflow-y-auto pr-1">
                   {items.map((item, i) => (
-                    <li key={`${item.logId}-${t.key}-${item.itemIndex}-${i}`} className="group rounded-lg bg-white/80 px-3 py-2 text-xs text-slate-700 leading-relaxed shadow-sm">
+                    <li key={`${item.logId}-${t.key}-${item.itemIndex}-${i}`} className="group rounded-xl bg-white/90 px-3 py-2.5 text-sm text-slate-700 leading-relaxed shadow-sm">
                       <div className="flex items-start gap-2">
                         <span className={`font-bold ${t.text}`}>{t.icon}</span>
                         <span className="flex-1">{item.text}</span>
@@ -384,10 +380,8 @@ function AlertDot({ level }) {
 
 function MiniMetric({ label, value, color }) {
   const styles = {
-    green: "border-emerald-200 bg-emerald-50 text-[#1F4D2C]",
-    blue: "border-blue-200 bg-blue-50 text-[#00377B]",
-    orange: "border-amber-200 bg-amber-50 text-[#A34D00]",
-    red: "border-red-200 bg-red-50 text-red-700",
+    blue: "border-[#BFD0E6] bg-[#EEF3FA] text-[#00377B]",
+    slate: "border-[#D6DEEA] bg-[#F8FAFD] text-[#1F2D5C]",
   };
 
   return (
@@ -403,7 +397,7 @@ function StatusPill({ syncStatus, count }) {
     "ortak-veri-aktif": {
       label: "Ortak veri aktif",
       detail: typeof count === "number" ? `${count} kayıt izleniyor` : "Kayıtlar ortak alanda",
-      className: "border-emerald-200 bg-emerald-50 text-[#1F4D2C]",
+      className: "border-[#BFD0E6] bg-[#EEF3FA] text-[#00377B]",
     },
     "ortak-veri-hatasi": {
       label: "Ortak veri bağlantısı yok",
@@ -413,12 +407,12 @@ function StatusPill({ syncStatus, count }) {
     "ortak-veri-baglaniyor": {
       label: "Ortak veri alınıyor",
       detail: "Bağlantı kontrol ediliyor",
-      className: "border-blue-200 bg-blue-50 text-[#00377B]",
+      className: "border-[#BFD0E6] bg-[#EEF3FA] text-[#00377B]",
     },
     yerel: {
       label: "Yerel mod",
       detail: "Supabase ayarı görünmüyor",
-      className: "border-amber-200 bg-amber-50 text-[#A34D00]",
+      className: "border-[#D6DEEA] bg-[#F8FAFD] text-[#1F2D5C]",
     },
   };
   const current = meta[syncStatus] || meta.yerel;
