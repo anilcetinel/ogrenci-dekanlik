@@ -135,37 +135,40 @@ function Dashboard() {
   };
 
   return (
-    <div className="space-y-5">
-      <SharedStatus
-        syncStatus={dashboardSyncStatus}
-        count={takvimRecords.length + operasyonRecords.length + logs.length}
-        label="Yönetim paneli ortak veri durumu"
-      />
-
+    <div className="space-y-6">
       {/* Üst bilgi bandı */}
-      <section className="rounded-2xl border border-[#D6DEEA] bg-gradient-to-r from-[#0E2650] to-[#1F2D5C] px-6 py-5 text-white shadow-md">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <section className="overflow-hidden rounded-3xl border border-[#D6DEEA] bg-white shadow-sm">
+        <div className="h-2 bg-gradient-to-r from-[#00377B] via-[#1F2D5C] to-[#1F4D2C]" />
+        <div className="grid gap-5 p-5 lg:grid-cols-[1fr_auto] lg:items-center lg:p-6">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/45">
-              Sakarya Üniversitesi · Öğrenci Destek Koordinatörlüğü
+            <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-slate-400">
+              Öğrenci Destek Koordinatörlüğü
             </p>
-            <h1 className="mt-1 text-xl font-bold">
+            <h1 className="mt-2 text-2xl font-black tracking-tight text-[#1F2D5C]">
               {weekdayFormatter.format(today)}, {dateFormatter.format(today)}
             </h1>
-            <p className="mt-0.5 text-sm text-white/60">2026-2027 Akademik Yılı</p>
+            <p className="mt-1 text-sm font-medium text-slate-500">2026-2027 Akademik Yılı · Yönetim özeti</p>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <div className="rounded-xl border border-white/15 bg-white/10 px-3 py-2 text-center">
-              <p className="text-[10px] text-white/50">Bu Hafta</p>
-              <p className="text-sm font-semibold text-white">{getWeekRange(today)}</p>
+
+          <div className="grid gap-2 sm:grid-cols-2 lg:min-w-[360px]">
+            <div className="rounded-2xl border border-[#D6DEEA] bg-[#F8FAFD] px-4 py-3">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Bu Hafta</p>
+              <p className="mt-1 text-base font-black text-[#00377B]">{getWeekRange(today)}</p>
             </div>
-            {urgentCount > 0 && (
-              <div className="flex items-center gap-2 rounded-xl border border-red-400/40 bg-red-500/20 px-3 py-2">
-                <span className="h-2 w-2 rounded-full bg-red-400" />
-                <p className="text-sm font-semibold text-red-200">{urgentCount} acil takvim uyarısı</p>
-              </div>
-            )}
+            <div className={`rounded-2xl border px-4 py-3 ${urgentCount > 0 ? "border-red-200 bg-red-50" : "border-emerald-200 bg-emerald-50"}`}>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Takvim Uyarısı</p>
+              <p className={`mt-1 text-base font-black ${urgentCount > 0 ? "text-red-700" : "text-[#1F4D2C]"}`}>
+                {urgentCount > 0 ? `${urgentCount} kritik konu` : "Kritik uyarı yok"}
+              </p>
+            </div>
           </div>
+        </div>
+        <div className="border-t border-[#E5E7EB] px-5 py-3 lg:px-6">
+          <SharedStatus
+            syncStatus={dashboardSyncStatus}
+            count={takvimRecords.length + operasyonRecords.length + logs.length}
+            label="Ortak veri"
+          />
         </div>
       </section>
 
@@ -215,11 +218,11 @@ function Dashboard() {
 
       {/* Ay seçici */}
       <div className="space-y-2">
-        <div className="flex flex-col gap-2 rounded-2xl border border-[#D6DEEA] bg-white p-3 shadow-sm">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 rounded-3xl border border-[#D6DEEA] bg-white p-4 shadow-sm">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="text-xs font-bold uppercase tracking-wide text-slate-400">Ay seçimi</p>
-              <p className="text-xs text-slate-500">Sayfa otomatik olarak içinde olduğumuz ayı açar; istediğiniz aya geçebilirsiniz.</p>
+              <p className="text-xs text-slate-500">Varsayılan olarak içinde olduğumuz ay gösterilir.</p>
             </div>
             <select
               value={selectedMonth}

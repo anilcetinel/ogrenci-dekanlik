@@ -47,7 +47,6 @@ function PinGate({ children }) {
           <div className="mx-auto flex max-w-7xl flex-col gap-2 px-5 py-2 text-xs sm:flex-row sm:items-center sm:justify-between">
             <p className="font-semibold tracking-wide">Sakarya Üniversitesi</p>
             <div className="flex flex-wrap gap-x-5 gap-y-1 text-white/75">
-              <span>sakarya.edu.tr</span>
               <span>ogrdekan@sakarya.edu.tr</span>
             </div>
           </div>
@@ -120,10 +119,6 @@ function PinGate({ children }) {
                   {accessConfigured ? "Yanlış kod. Tekrar deneyin." : "Canlı yayın için erişim kodu tanımlı değil."}
                 </p>
               )}
-
-              <p className="mt-4 rounded-2xl border border-[#E5E7EB] bg-[#F8FAFD] px-4 py-3 text-xs leading-5 text-slate-500">
-                Yönetici kodu veri girişi sağlar. İzleyici kodu yalnızca görüntüleme içindir.
-              </p>
 
               <button
                 type="submit"

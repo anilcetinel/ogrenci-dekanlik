@@ -64,6 +64,8 @@ const navItems = [
 ];
 
 function Sidebar({ mobileOpen, onClose }) {
+  const logoSrc = `${import.meta.env.BASE_URL}sau-logo-yatay.png`;
+
   return (
     <>
       <div
@@ -74,10 +76,10 @@ function Sidebar({ mobileOpen, onClose }) {
         className={`fixed left-0 top-0 z-40 flex h-screen w-[240px] flex-col border-r border-white/10 bg-[#0E2650] text-white transition-transform md:translate-x-0 ${mobileOpen ? "translate-x-0" : "-translate-x-full"}`}
       >
         {/* Logo */}
-        <div className="border-b border-white/10 px-5 py-5">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#F58220]/40 bg-[#F58220]/15 text-xs font-bold text-[#F58220]">
-              SAÜ
+        <div className="border-b border-white/10 px-4 py-5">
+          <div className="space-y-3">
+            <div className="flex h-14 w-full items-center overflow-hidden rounded-xl border border-white/15 bg-white px-3 py-2">
+              <img src={logoSrc} alt="Sakarya Üniversitesi" className="h-full w-full object-contain object-left" />
             </div>
             <div>
               <h1 className="text-sm font-bold leading-5 text-white">Öğrenci Destek Koordinatörlüğü</h1>
