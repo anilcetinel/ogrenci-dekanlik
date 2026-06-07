@@ -10,7 +10,7 @@ import haftalikLogData from "../data/haftalik-log.json";
 import operasyonData from "../data/operasyon-kutuphanesi.json";
 import { canEditData } from "../utils/auth";
 import { getCalendarAlert } from "../utils/calendar";
-import { getWeeklyLogStart } from "../utils/dateKeys";
+import { getWeeklyLogStart, getWeekKey } from "../utils/dateKeys";
 import { buildVisibleMonthKeys, getLogMonthKey, getMonthKey, getMonthLabel } from "../utils/months";
 
 const dateFormatter = new Intl.DateTimeFormat("tr-TR", { day: "2-digit", month: "long", year: "numeric" });
@@ -45,7 +45,7 @@ function Dashboard() {
   const editable = canEditData();
   const { records: takvimRecords, syncStatus: takvimSyncStatus } = useStoredCollection("akademikTakvimRecords", takvimData);
   const { records: operasyonRecords, syncStatus: operasyonSyncStatus } = useStoredCollection("operasyonRecords", operasyonData);
-  const { records: logs, syncStatus: logsSyncStatus } = useStoredCollection("haftalikLogRecords", haftalikLogData, {
+  const { records: logs, mergeRecord, syncStatus: logsSyncStatus } = useStoredCollection("haftalikLogRecords", haftalikLogData, {
     sortByDateField: "haftaBaslangic",
   });
   const dashboardSyncStatus = [takvimSyncStatus, operasyonSyncStatus, logsSyncStatus].includes("ortak-veri-hatasi")
@@ -74,7 +74,14 @@ function Dashboard() {
   const combined = useMemo(
     () =>
       TYPES.reduce((acc, t) => {
-        acc[t.key] = monthLogs.flatMap((l) => (l[t.key] || []).map((item) => ({ text: item, hafta: l.haftaLabel })));
+        acc[t.key] = monthLogs.flatMap((l) =>
+          (l[t.key] || []).map((item, itemIndex) => ({
+            text: item,
+            hafta: l.haftaLabel,
+            itemIndex,
+            logId: l.id,
+          })),
+        );
         return acc;
       }, {}),
     [monthLogs],
@@ -110,6 +117,22 @@ function Dashboard() {
       }, {}),
     [monthKeys],
   );
+
+  const handleDeleteDashboardItem = (item, colKey) => {
+    const log = logs.find((record) => String(record.id) === String(item.logId));
+    if (!log) return;
+
+    if (!window.confirm("Bu madde yönetim panelinden ve haftalık faaliyet kaydından silinsin mi?")) {
+      return;
+    }
+
+    const nextItems = (log[colKey] || []).filter((_, index) => index !== item.itemIndex);
+    mergeRecord(
+      { ...log, [colKey]: nextItems },
+      (record) => getWeekKey(getWeeklyLogStart(record)),
+      (_, incomingRecord) => incomingRecord,
+    );
+  };
 
   return (
     <div className="space-y-5">
@@ -243,9 +266,20 @@ function Dashboard() {
               {items.length > 0 ? (
                 <ul className="space-y-1.5 max-h-64 overflow-y-auto pr-1">
                   {items.map((item, i) => (
-                    <li key={i} className="rounded-lg bg-white/80 px-3 py-2 text-xs text-slate-700 leading-relaxed shadow-sm">
-                      <span className={`font-bold ${t.text} mr-1`}>{t.icon}</span>
-                      {item.text}
+                    <li key={`${item.logId}-${t.key}-${item.itemIndex}-${i}`} className="group rounded-lg bg-white/80 px-3 py-2 text-xs text-slate-700 leading-relaxed shadow-sm">
+                      <div className="flex items-start gap-2">
+                        <span className={`font-bold ${t.text}`}>{t.icon}</span>
+                        <span className="flex-1">{item.text}</span>
+                        {editable && (
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteDashboardItem(item, t.key)}
+                            className="shrink-0 rounded-md border border-red-100 bg-red-50 px-2 py-0.5 text-[10px] font-semibold text-red-600 transition hover:border-red-200 hover:bg-red-100"
+                          >
+                            Sil
+                          </button>
+                        )}
+                      </div>
                       <p className="mt-0.5 text-[10px] text-slate-400">{item.hafta}</p>
                     </li>
                   ))}

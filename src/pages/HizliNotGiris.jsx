@@ -9,7 +9,7 @@ import haftalikLogData from "../data/haftalik-log.json";
 import operasyonData from "../data/operasyon-kutuphanesi.json";
 import evrakData from "../data/evraklar.json";
 import { canEditData } from "../utils/auth";
-import { getWeekKey, getWeekStart, toDateKey } from "../utils/dateKeys";
+import { getWeeklyLogStart, getWeekKey, getWeekStart, toDateKey } from "../utils/dateKeys";
 import { canEmbedFile, extractTextFromFile, formatFileSize, getDocumentType, getFileExtension, readFileAsDataUrl } from "../utils/fileText";
 import { uploadSharedFile } from "../utils/sharedFiles";
 import { splitLines } from "../utils/storage";
@@ -268,11 +268,12 @@ function HizliNotGiris() {
   const handleDeleteNote = (note) => {
     if (window.confirm("Bu hızlı not kaydı silinsin mi? Bu nottan haftalık faaliyet panosuna işlenen maddeler de kaldırılır.")) {
       const contribution = getNoteContribution(note, operations);
-      const hasWeeklyRecord = logs.some((record) => getWeekKey(record.haftaBaslangic) === getWeekKey(contribution.haftaBaslangic));
+      const getRecordKey = (record) => getWeekKey(getWeeklyLogStart(record));
+      const hasWeeklyRecord = logs.some((record) => getRecordKey(record) === getWeekKey(contribution.haftaBaslangic));
       if (hasWeeklyRecord) {
         mergeRecord(
           contribution,
-          (record) => getWeekKey(record.haftaBaslangic),
+          getRecordKey,
           (existingRecord, removedContribution) => ({
             ...existingRecord,
             yapilanlar: removeWeeklyItems(existingRecord.yapilanlar, removedContribution.yapilanlar),
