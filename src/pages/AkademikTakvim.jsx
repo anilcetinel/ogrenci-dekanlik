@@ -336,12 +336,42 @@ function inferCategoryFromText(name, sectionTitle, fallback = "Akademik") {
 }
 
 const categoryStyles = {
-  sınav:     { bg: "bg-red-100",    text: "text-red-700",    border: "border-red-500"    },
-  kayıt:     { bg: "bg-blue-100",   text: "text-blue-800",   border: "border-blue-600"   },
-  muafiyet:  { bg: "bg-emerald-100",text: "text-emerald-800",border: "border-emerald-600"},
-  mezuniyet: { bg: "bg-purple-100", text: "text-purple-800", border: "border-purple-600" },
-  başvuru:   { bg: "bg-orange-100", text: "text-orange-800", border: "border-orange-500" },
-  akademik:  { bg: "bg-slate-100",  text: "text-slate-700",  border: "border-slate-400"  },
+  sınav: {
+    bg: "bg-[#FFF4EA]",
+    text: "text-[#9A4A00]",
+    border: "border-[#F58220]",
+    dot: "bg-[#F58220]",
+  },
+  kayıt: {
+    bg: "bg-[#EEF3FA]",
+    text: "text-[#00377B]",
+    border: "border-[#00377B]",
+    dot: "bg-[#00377B]",
+  },
+  muafiyet: {
+    bg: "bg-[#EEF7F0]",
+    text: "text-[#1F4D2C]",
+    border: "border-[#1F4D2C]",
+    dot: "bg-[#1F4D2C]",
+  },
+  mezuniyet: {
+    bg: "bg-[#F4F7FB]",
+    text: "text-[#1F2D5C]",
+    border: "border-[#1F2D5C]",
+    dot: "bg-[#1F2D5C]",
+  },
+  başvuru: {
+    bg: "bg-[#FFF8F1]",
+    text: "text-[#9A4A00]",
+    border: "border-[#F58220]",
+    dot: "bg-[#F58220]",
+  },
+  akademik: {
+    bg: "bg-[#F8FAFD]",
+    text: "text-[#1F2D5C]",
+    border: "border-[#BFD0E6]",
+    dot: "bg-[#7A8AA6]",
+  },
 };
 
 function getCategoryStyle(category) {
@@ -352,12 +382,40 @@ function getCategoryStyle(category) {
 
 function getCategoryAccentColor(category) {
   const key = normalizeText(category);
-  if (key.includes("sınav")) return "#DC2626";
-  if (key.includes("kayıt")) return "#2563EB";
-  if (key.includes("muafiyet")) return "#059669";
-  if (key.includes("mezuniyet")) return "#7C3AED";
-  if (key.includes("başvuru")) return "#EA580C";
-  return "#64748B";
+  if (key.includes("sınav")) return "#F58220";
+  if (key.includes("kayıt")) return "#00377B";
+  if (key.includes("muafiyet")) return "#1F4D2C";
+  if (key.includes("mezuniyet")) return "#1F2D5C";
+  if (key.includes("başvuru")) return "#F58220";
+  return "#7A8AA6";
+}
+
+function CalendarSyncStatus({ syncStatus, count, debugInfo }) {
+  const states = {
+    "ortak-veri-aktif": {
+      label: `Ortak veri aktif · ${count} kayıt`,
+      className: "border-[#BDEFD1] bg-[#F0FFF6] text-[#1F4D2C]",
+    },
+    "ortak-veri-hatasi": {
+      label: `Ortak veri bağlantısı kurulamadı · Anahtar: ${debugInfo.keyType}`,
+      className: "border-red-200 bg-red-50 text-red-700",
+    },
+    "ortak-veri-baglaniyor": {
+      label: "Ortak veri bağlanıyor",
+      className: "border-[#BFD0E6] bg-[#EEF3FA] text-[#00377B]",
+    },
+    yerel: {
+      label: `Yerel mod · URL ${debugInfo.hasUrl ? "var" : "yok"} / Key ${debugInfo.hasKey ? "var" : "yok"}`,
+      className: "border-[#E5E7EB] bg-white text-[#60708B]",
+    },
+  };
+  const state = states[syncStatus] || states.yerel;
+
+  return (
+    <span className={`inline-flex items-center rounded-full border px-3 py-1.5 text-xs font-semibold ${state.className}`}>
+      {state.label}
+    </span>
+  );
 }
 
 function dateOnly(date) {
@@ -753,22 +811,6 @@ function AkademikTakvim() {
         <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{importError}</div>
       )}
 
-      <div className={`rounded-xl border px-4 py-3 text-sm ${
-        syncStatus === "ortak-veri-aktif"
-          ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-          : syncStatus === "ortak-veri-hatasi"
-          ? "border-red-200 bg-red-50 text-red-700"
-          : syncStatus === "ortak-veri-baglaniyor"
-          ? "border-blue-200 bg-blue-50 text-[#00377B]"
-          : "border-amber-200 bg-amber-50 text-amber-800"
-      }`}>
-        <span className="font-semibold">Ortak veri durumu:</span>{" "}
-        {syncStatus === "ortak-veri-aktif" && `Bağlantı aktif · ${events.length} takvim kaydı alındı.`}
-        {syncStatus === "ortak-veri-hatasi" && `Supabase bağlantısı kurulamadı. Kayıtlar bu tarayıcıya özel görünüyor. Anahtar tipi: ${sharedDebugInfo.keyType}.`}
-        {syncStatus === "ortak-veri-baglaniyor" && "Supabase kayıtları alınıyor..."}
-        {syncStatus === "yerel" && `Yerel mod. Supabase ayarları bu yayında görünmüyor. URL: ${sharedDebugInfo.hasUrl ? "var" : "yok"}, Key: ${sharedDebugInfo.hasKey ? "var" : "yok"}.`}
-      </div>
-
       {/* Excel önizleme bandı */}
       {editable && previewRows.length > 0 && (
         <div className="rounded-2xl border border-[#00377B]/30 bg-[#EEF3FA] px-5 py-4">
@@ -829,46 +871,63 @@ function AkademikTakvim() {
         </div>
       )}
 
-      {/* Üst araç çubuğu */}
-      <div className="flex flex-wrap items-center gap-3">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Akademik Takvim</p>
-          <h2 className="text-xl font-bold text-[#1F2D5C]">2026-2027 Akademik Yılı</h2>
-        </div>
-        <div className="ml-auto flex flex-wrap gap-2">
-          {editable && (
-            <>
-              <input ref={fileInputRef} type="file" accept=".xlsx,.xls" onChange={handleExcelFile} className="hidden" />
-              <button type="button" onClick={() => fileInputRef.current?.click()}
-                className="rounded-xl border border-[#D6DEEA] bg-white px-3 py-2 text-sm font-medium text-[#1F2D5C] hover:border-[#00377B]">
-                Excel Yükle
-              </button>
-              <button type="button" onClick={() => setModalOpen(true)}
-                className="rounded-xl bg-[#00377B] px-3 py-2 text-sm font-medium text-white hover:bg-[#1F2D5C]">
-                + Olay Ekle
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  if (window.confirm("Kullanıcı tarafından içe aktarılan takvim kayıtları silinecek. Demo kayıtlar korunur. Devam?")) {
-                    clearRecords();
-                    setPreviewRows([]);
-                    setSuccessMessage("İçe aktarılan takvim kayıtları temizlendi. Demo kayıtlar korunur.");
-                  }
-                }}
-                className="rounded-xl border border-red-200 bg-white px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
-              >
-                Sıfırla
-              </button>
-            </>
-          )}
-          <div className="flex rounded-xl border border-[#D6DEEA] bg-[#F8FAFD] p-0.5">
-            {["Yıllık", "Aylık", "Liste"].map((v) => (
-              <button key={v} type="button" onClick={() => setViewMode(v)}
-                className={`rounded-lg px-3 py-2 text-sm font-semibold transition ${viewMode === v ? "bg-[#00377B] text-white" : "text-[#1F2D5C] hover:bg-white"}`}>
-                {v}
-              </button>
-            ))}
+      {/* Üst kontrol alanı */}
+      <div className="overflow-hidden rounded-[1.6rem] border border-[#D6DEEA] bg-white shadow-sm">
+        <div className="h-2 bg-gradient-to-r from-[#00377B] via-[#1F2D5C] to-[#F58220]" />
+        <div className="flex flex-col gap-5 px-5 py-5 xl:flex-row xl:items-end xl:justify-between">
+          <div className="max-w-2xl">
+            <p className="text-xs font-bold uppercase tracking-[0.28em] text-[#8A9AB5]">Akademik Takvim</p>
+            <h2 className="mt-1 text-2xl font-extrabold text-[#1F2D5C]">2026-2027 Akademik Yılı</h2>
+            <p className="mt-2 text-sm text-[#60708B]">
+              Excel veya manuel girişlerden gelen olaylar akademik yıl aylarına otomatik yerleşir.
+            </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <span className="rounded-full border border-[#D6DEEA] bg-[#F8FAFD] px-3 py-1.5 text-xs font-semibold text-[#1F2D5C]">
+                {calendarEvents.length} takvim olayı
+              </span>
+              <span className="rounded-full border border-[#D6DEEA] bg-[#F8FAFD] px-3 py-1.5 text-xs font-semibold text-[#1F2D5C]">
+                {visibleMonthDates.length} ay gösteriliyor
+              </span>
+              <CalendarSyncStatus syncStatus={syncStatus} count={events.length} debugInfo={sharedDebugInfo} />
+            </div>
+          </div>
+          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center xl:justify-end">
+            {editable && (
+              <>
+                <input ref={fileInputRef} type="file" accept=".xlsx,.xls" onChange={handleExcelFile} className="hidden" />
+                <button type="button" onClick={() => fileInputRef.current?.click()}
+                  className="rounded-xl border border-[#D6DEEA] bg-white px-4 py-2.5 text-sm font-bold text-[#1F2D5C] shadow-sm transition hover:border-[#00377B] hover:text-[#00377B]">
+                  Excel Yükle
+                </button>
+                <button type="button" onClick={() => setModalOpen(true)}
+                  className="rounded-xl bg-[#00377B] px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-[#1F2D5C]">
+                  + Olay Ekle
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (window.confirm("Kullanıcı tarafından içe aktarılan takvim kayıtları silinecek. Demo kayıtlar korunur. Devam?")) {
+                      clearRecords();
+                      setPreviewRows([]);
+                      setSuccessMessage("İçe aktarılan takvim kayıtları temizlendi. Demo kayıtlar korunur.");
+                    }
+                  }}
+                  className="rounded-xl border border-[#F2C8C8] bg-white px-4 py-2.5 text-sm font-bold text-[#B42318] shadow-sm transition hover:bg-red-50"
+                >
+                  Sıfırla
+                </button>
+              </>
+            )}
+            <div className="flex rounded-xl border border-[#D6DEEA] bg-[#F8FAFD] p-1 shadow-inner">
+              {["Yıllık", "Aylık", "Liste"].map((v) => (
+                <button key={v} type="button" onClick={() => setViewMode(v)}
+                  className={`rounded-lg px-4 py-2 text-sm font-bold transition ${
+                    viewMode === v ? "bg-[#00377B] text-white shadow-sm" : "text-[#1F2D5C] hover:bg-white"
+                  }`}>
+                  {v}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </div>
@@ -882,60 +941,86 @@ function AkademikTakvim() {
             const isSelected = monthDate.getFullYear() === selectedMonth.getFullYear() &&
               monthDate.getMonth() === selectedMonth.getMonth();
 
+            const visibleEvents = monthEvents.slice(0, 5);
+            const hiddenEventCount = Math.max(monthEvents.length - visibleEvents.length, 0);
+
             return (
               <div
                 key={`${monthDate.getFullYear()}-${monthDate.getMonth()}`}
                 onClick={() => { setSelectedMonth(monthDate); setViewMode("Aylık"); }}
-                className={`cursor-pointer rounded-2xl border p-4 shadow-sm transition hover:border-[#00377B] hover:shadow-md ${
-                  isSelected ? "border-[#00377B] bg-[#EEF3FA]" : "border-[#E5E7EB] bg-white"
+                className={`group cursor-pointer overflow-hidden rounded-[1.35rem] border bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-[#00377B] hover:shadow-lg ${
+                  isSelected ? "border-[#00377B] ring-2 ring-[#00377B]/10" : "border-[#E5E7EB]"
                 }`}
               >
-                <div className="mb-2 flex items-center justify-between">
-                  <h3 className="text-sm font-bold capitalize text-[#1F2D5C]">
-                    {monthFormatter.format(monthDate)}
-                  </h3>
-                  {monthEvents.length > 0 && (
-                    <span className="rounded-full bg-[#00377B] px-2 py-0.5 text-[10px] font-bold text-white">
+                <div className="h-1.5 bg-gradient-to-r from-[#00377B] via-[#1F2D5C] to-[#1F4D2C]" />
+                <div className={`${isSelected ? "bg-[#F4F7FB]" : "bg-white"} p-4`}>
+                  <div className="mb-3 flex items-start justify-between gap-3">
+                    <div>
+                      <h3 className="text-base font-extrabold capitalize text-[#1F2D5C]">
+                        {monthFormatter.format(monthDate)}
+                      </h3>
+                      <p className="mt-0.5 text-[11px] font-medium text-[#8A9AB5]">Aylık akademik plan</p>
+                    </div>
+                    <span className={`rounded-full px-2.5 py-1 text-[11px] font-extrabold ${
+                      monthEvents.length > 0 ? "bg-[#00377B] text-white" : "bg-[#F1F5F9] text-[#8A9AB5]"
+                    }`}>
                       {monthEvents.length}
                     </span>
-                  )}
-                </div>
-                {/* Mini takvim */}
-                <div className="grid grid-cols-7 text-center">
-                  {weekDays.map((d) => <span key={d} className="text-[9px] text-slate-400">{d}</span>)}
-                </div>
-                <div className="mt-1 grid grid-cols-7 gap-y-0.5">
-                  {days.map((day) => {
-                    const inMonth = day.getMonth() === monthDate.getMonth();
-                    const dayEvts = monthEvents.filter((e) => eventIncludesDay(e, day));
-                    const color = dayEvts[0] ? getCategoryAccentColor(dayEvts[0].kategori) : null;
-                    return (
-                      <div key={day.toISOString()} className="relative flex flex-col items-center">
-                        <span className={`text-[10px] ${inMonth ? "text-slate-600 font-medium" : "text-slate-200"}`}>
-                          {day.getDate()}
-                        </span>
-                        {color && inMonth && (
-                          <span className="h-1 w-1 rounded-full" style={{ backgroundColor: color }} />
-                        )}
-                      </div>
-                    );
-                  })}
+                  </div>
+                  {/* Mini takvim */}
+                  <div className="rounded-xl border border-[#E5EAF2] bg-[#F8FAFD] p-2.5">
+                    <div className="grid grid-cols-7 text-center">
+                      {weekDays.map((d) => <span key={d} className="text-[9px] font-bold text-[#8A9AB5]">{d}</span>)}
+                    </div>
+                    <div className="mt-1.5 grid grid-cols-7 gap-y-1">
+                      {days.map((day) => {
+                        const inMonth = day.getMonth() === monthDate.getMonth();
+                        const dayEvts = monthEvents.filter((e) => eventIncludesDay(e, day));
+                        const color = dayEvts[0] ? getCategoryAccentColor(dayEvts[0].kategori) : null;
+                        return (
+                          <div key={day.toISOString()} className="relative flex min-h-5 flex-col items-center justify-center">
+                            <span className={`text-[10px] ${inMonth ? "font-bold text-[#42526E]" : "text-slate-200"}`}>
+                              {day.getDate()}
+                            </span>
+                            {color && inMonth && (
+                              <span className="mt-0.5 h-1.5 w-1.5 rounded-full shadow-sm" style={{ backgroundColor: color }} />
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
                 {/* Ay etkinlik özeti */}
                 {monthEvents.length > 0 && (
-                  <div className="mt-3 space-y-1.5">
-                    {monthEvents.map((e) => {
+                  <div className="space-y-2 border-t border-[#EEF2F7] bg-white px-4 py-3">
+                    {visibleEvents.map((e) => {
                       const s = getCategoryStyle(e.kategori);
                       return (
-                        <div key={e.id} className={`rounded-md border-l-2 ${s.border} ${s.bg} px-2 py-1.5`}>
-                          <p className={`line-clamp-1 text-xs font-semibold leading-snug ${s.text}`}>{e.ad}</p>
-                          <p className="mt-0.5 text-[10px] text-slate-500">
-                            {shortMonthFormatter.format(new Date(e.baslangic))}
-                            {e.bitis !== e.baslangic ? ` – ${shortMonthFormatter.format(new Date(e.bitis))}` : ""}
-                          </p>
+                        <div key={e.id} className={`rounded-xl border border-[#E5EAF2] border-l-4 ${s.border} ${s.bg} px-3 py-2`}>
+                          <div className="flex items-start gap-2">
+                            <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${s.dot}`} />
+                            <div className="min-w-0">
+                              <p className={`line-clamp-1 text-xs font-extrabold leading-snug ${s.text}`}>{e.ad}</p>
+                              <p className="mt-1 text-[10px] font-semibold text-[#60708B]">
+                                {shortMonthFormatter.format(new Date(e.baslangic))}
+                                {e.bitis !== e.baslangic ? ` – ${shortMonthFormatter.format(new Date(e.bitis))}` : ""}
+                              </p>
+                            </div>
+                          </div>
                         </div>
                       );
                     })}
+                    {hiddenEventCount > 0 && (
+                      <div className="rounded-xl border border-dashed border-[#BFD0E6] bg-[#F8FAFD] px-3 py-2 text-center text-xs font-bold text-[#00377B]">
+                        +{hiddenEventCount} olay daha · Aylık takvimde görüntüle
+                      </div>
+                    )}
+                  </div>
+                )}
+                {monthEvents.length === 0 && (
+                  <div className="border-t border-[#EEF2F7] px-4 py-3 text-xs font-semibold text-[#8A9AB5]">
+                    Bu ay için kayıt yok
                   </div>
                 )}
               </div>
@@ -946,39 +1031,63 @@ function AkademikTakvim() {
 
       {/* Aylık: Tam takvim görünümü */}
       {viewMode === "Aylık" && (
-        <div className="rounded-2xl border border-[#E5E7EB] bg-white shadow-sm">
-          <div className="flex items-center justify-between border-b border-[#E5E7EB] px-5 py-4">
-            <h3 className="text-lg font-bold capitalize text-[#1F2D5C]">{monthFormatter.format(selectedMonth)}</h3>
-            <div className="flex gap-2">
+        <div className="overflow-hidden rounded-[1.6rem] border border-[#D6DEEA] bg-white shadow-sm">
+          <div className="h-1.5 bg-gradient-to-r from-[#00377B] via-[#1F2D5C] to-[#1F4D2C]" />
+          <div className="flex flex-col gap-3 border-b border-[#E5E7EB] px-5 py-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-[#8A9AB5]">Aylık Takvim</p>
+              <h3 className="mt-1 text-xl font-extrabold capitalize text-[#1F2D5C]">{monthFormatter.format(selectedMonth)}</h3>
+              <p className="mt-1 text-sm text-[#60708B]">{selectedMonthEvents.length} akademik olay bu ay içinde görünüyor.</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
               <button type="button"
                 onClick={() => setSelectedMonth(new Date(selectedMonth.getFullYear(), selectedMonth.getMonth() - 1, 1))}
-                className="rounded-lg border border-[#D6DEEA] px-3 py-1.5 text-sm text-[#1F2D5C] hover:border-[#00377B]">‹ Önceki</button>
+                className="rounded-xl border border-[#D6DEEA] bg-white px-3 py-2 text-sm font-bold text-[#1F2D5C] shadow-sm hover:border-[#00377B]">‹ Önceki</button>
+              <button type="button"
+                onClick={() => setSelectedMonth(new Date())}
+                className="rounded-xl border border-[#D6DEEA] bg-[#F8FAFD] px-3 py-2 text-sm font-bold text-[#00377B] shadow-sm hover:border-[#00377B]">Bugün</button>
               <button type="button"
                 onClick={() => setSelectedMonth(new Date(selectedMonth.getFullYear(), selectedMonth.getMonth() + 1, 1))}
-                className="rounded-lg border border-[#D6DEEA] px-3 py-1.5 text-sm text-[#1F2D5C] hover:border-[#00377B]">Sonraki ›</button>
+                className="rounded-xl border border-[#D6DEEA] bg-white px-3 py-2 text-sm font-bold text-[#1F2D5C] shadow-sm hover:border-[#00377B]">Sonraki ›</button>
             </div>
           </div>
           <div className="overflow-x-auto p-4">
-            <div className="grid min-w-[700px] grid-cols-7">
+            <div className="grid min-w-[760px] grid-cols-7 overflow-hidden rounded-2xl border border-[#E5EAF2]">
               {["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"].map((d) => (
-                <div key={d} className="border-b border-[#E5E7EB] bg-[#EEF3FA] py-2 text-center text-xs font-semibold text-[#1F2D5C]">{d}</div>
+                <div key={d} className="border-b border-[#E5E7EB] bg-[#EEF3FA] py-3 text-center text-xs font-extrabold text-[#1F2D5C]">{d}</div>
               ))}
               {monthGridDays.map((day) => {
                 const inMonth = day.getMonth() === selectedMonth.getMonth();
                 const dayEvts = selectedMonthEvents.filter((e) => eventIncludesDay(e, day));
+                const isToday = dateOnly(day).getTime() === dateOnly(new Date()).getTime();
                 return (
-                  <div key={day.toISOString()} className={`min-h-28 border-b border-r border-[#E5E7EB] p-1.5 ${inMonth ? "bg-white" : "bg-slate-50"}`}>
-                    <p className={`mb-1 text-xs font-semibold ${inMonth ? "text-[#1F2D5C]" : "text-slate-300"}`}>{day.getDate()}</p>
-                    <div className="space-y-1">
+                  <div key={day.toISOString()} className={`min-h-32 border-b border-r border-[#E5E7EB] p-2 ${
+                    inMonth ? "bg-white" : "bg-[#F8FAFD]"
+                  }`}>
+                    <div className="mb-2 flex items-center justify-between">
+                      <p className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-extrabold ${
+                        isToday ? "bg-[#00377B] text-white" : inMonth ? "text-[#1F2D5C]" : "text-slate-300"
+                      }`}>{day.getDate()}</p>
+                      {dayEvts.length > 0 && (
+                        <span className="rounded-full bg-[#F1F5F9] px-2 py-0.5 text-[10px] font-bold text-[#60708B]">
+                          {dayEvts.length}
+                        </span>
+                      )}
+                    </div>
+                    <div className="space-y-1.5">
                       {dayEvts.slice(0, 2).map((e) => {
                         const s = getCategoryStyle(e.kategori);
                         return (
-                          <div key={e.id} className={`rounded border-l-2 ${s.border} ${s.bg} px-1.5 py-0.5`}>
-                            <p className={`line-clamp-1 text-[10px] font-semibold ${s.text}`}>{e.ad}</p>
+                          <div key={e.id} className={`rounded-lg border border-l-4 ${s.border} ${s.bg} px-2 py-1.5`}>
+                            <p className={`line-clamp-2 text-[10px] font-extrabold leading-snug ${s.text}`}>{e.ad}</p>
+                            <p className="mt-0.5 text-[9px] font-semibold text-[#60708B]">
+                              {shortMonthFormatter.format(new Date(e.baslangic))}
+                              {e.bitis !== e.baslangic ? ` – ${shortMonthFormatter.format(new Date(e.bitis))}` : ""}
+                            </p>
                           </div>
                         );
                       })}
-                      {dayEvts.length > 2 && <p className="text-[10px] text-slate-400">+{dayEvts.length - 2}</p>}
+                      {dayEvts.length > 2 && <p className="text-[10px] font-bold text-[#00377B]">+{dayEvts.length - 2} olay</p>}
                     </div>
                   </div>
                 );
