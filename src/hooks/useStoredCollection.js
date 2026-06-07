@@ -8,6 +8,7 @@ import {
   upsertSharedRecords,
 } from "../utils/sharedStorage";
 import { canEditData } from "../utils/auth";
+import { AUDIT_LOG_KEY, appendAuditLog, summarizeRecord } from "../utils/auditLog";
 
 function mergeById(primaryRecords, secondaryRecords) {
   const recordsById = new Map();
@@ -131,11 +132,33 @@ function useStoredCollection(storageKey, demoRecords, options = {}) {
   const addRecord = (record) => {
     const nextRecords = [...storedRecords, record];
     persistRecords(nextRecords, [record]);
+    appendAuditLog({
+      action: "Kayıt eklendi",
+      collectionKey: storageKey,
+      recordId: record.id,
+      summary: summarizeRecord(record),
+    });
   };
 
   const addRecords = (newRecords) => {
     const nextRecords = [...storedRecords, ...newRecords];
     persistRecords(nextRecords, newRecords);
+    if (newRecords.length === 1) {
+      appendAuditLog({
+        action: "Kayıt eklendi",
+        collectionKey: storageKey,
+        recordId: newRecords[0].id,
+        summary: summarizeRecord(newRecords[0]),
+      });
+    } else if (newRecords.length > 1) {
+      appendAuditLog({
+        action: "Toplu kayıt eklendi",
+        collectionKey: storageKey,
+        recordId: `bulk-${Date.now()}`,
+        summary: `${newRecords.length} kayıt işlendi`,
+        count: newRecords.length,
+      });
+    }
   };
 
   const upsertRecords = (newRecords, getKey) => {
@@ -153,6 +176,22 @@ function useStoredCollection(storageKey, demoRecords, options = {}) {
 
     const nextRecords = Array.from(nextRecordsByKey.values());
     persistRecords(nextRecords, newRecords);
+    if (newRecords.length === 1) {
+      appendAuditLog({
+        action: "Kayıt güncellendi",
+        collectionKey: storageKey,
+        recordId: newRecords[0].id,
+        summary: summarizeRecord(newRecords[0]),
+      });
+    } else if (newRecords.length > 1) {
+      appendAuditLog({
+        action: "Toplu kayıt güncellendi",
+        collectionKey: storageKey,
+        recordId: `bulk-${Date.now()}`,
+        summary: `${newRecords.length} kayıt işlendi`,
+        count: newRecords.length,
+      });
+    }
   };
 
   const mergeRecord = (record, getKey, mergeFn) => {
@@ -177,10 +216,25 @@ function useStoredCollection(storageKey, demoRecords, options = {}) {
     }
 
     persistRecords(nextRecords, [nextRecord]);
+    appendAuditLog({
+      action: updated ? "Kayıt güncellendi" : "Kayıt eklendi",
+      collectionKey: storageKey,
+      recordId: nextRecord.id,
+      summary: summarizeRecord(nextRecord),
+    });
   };
 
   const clearRecords = () => {
     persistRecords([], []);
+    if (storageKey !== AUDIT_LOG_KEY && storedRecords.length > 0) {
+      appendAuditLog({
+        action: "Koleksiyon temizlendi",
+        collectionKey: storageKey,
+        recordId: `clear-${Date.now()}`,
+        summary: `${storedRecords.length} kayıt silindi`,
+        count: storedRecords.length,
+      });
+    }
     if (isSharedStorageEnabled()) {
       clearSharedCollection(storageKey).catch((error) => {
         console.warn("Ortak veri koleksiyonu temizlenemedi:", storageKey, error);
@@ -190,8 +244,15 @@ function useStoredCollection(storageKey, demoRecords, options = {}) {
   };
 
   const deleteRecord = (recordId) => {
+    const deletedRecord = storedRecords.find((record) => String(record.id) === String(recordId));
     const nextRecords = storedRecords.filter((record) => String(record.id) !== String(recordId));
     persistRecords(nextRecords, []);
+    appendAuditLog({
+      action: "Kayıt silindi",
+      collectionKey: storageKey,
+      recordId,
+      summary: summarizeRecord(deletedRecord) || String(recordId),
+    });
     if (isSharedStorageEnabled()) {
       deleteSharedRecord(storageKey, recordId).catch((error) => {
         console.warn("Ortak veriden kayıt silinemedi:", storageKey, error);

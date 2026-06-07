@@ -1,5 +1,10 @@
 import { useState } from "react";
-import { getSharedStorageInfo, isSharedStorageEnabled, upsertSharedRecords } from "../utils/sharedStorage";
+import {
+  getSharedStorageDebugInfo,
+  getSharedStorageInfo,
+  isSharedStorageEnabled,
+  upsertSharedRecords,
+} from "../utils/sharedStorage";
 import { canEditData } from "../utils/auth";
 import { readStoredCollection } from "../utils/storage";
 import { getSharedFileInfo, testSharedFileStorage } from "../utils/sharedFiles";
@@ -10,6 +15,7 @@ const COLLECTIONS = [
   { key: "operasyonRecords",      label: "Operasyonlar" },
   { key: "evrakRecords",          label: "Evrak ve Şablonlar" },
   { key: "hizliNotRecords",       label: "Hızlı Notlar" },
+  { key: "auditLogRecords",       label: "İşlem Geçmişi" },
 ];
 
 function getCount(key) {
@@ -23,6 +29,7 @@ function Ayarlar() {
   const [syncing, setSyncing] = useState(false);
   const [testingStorage, setTestingStorage] = useState(false);
   const sharedStorageInfo = getSharedStorageInfo();
+  const sharedStorageDebug = getSharedStorageDebugInfo();
   const sharedFileInfo = getSharedFileInfo();
 
   const refreshCounts = () => setCounts(Object.fromEntries(COLLECTIONS.map((c) => [c.key, getCount(c.key)])));
@@ -220,6 +227,48 @@ function Ayarlar() {
             </button>
           </div>
         )}
+      </div>
+
+      {/* Kurulum kontrol listesi */}
+      <div className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm">
+        <h3 className="mb-1 text-sm font-bold text-[#1F2D5C]">Kurulum Kontrol Listesi</h3>
+        <p className="mb-4 text-xs leading-5 text-slate-500">
+          Bu liste, uygulamanın tek kişilik yerel prototipten ortak kullanılan kurumsal kayıt sistemine geçiş durumunu gösterir.
+        </p>
+        <div className="grid gap-3 md:grid-cols-2">
+          <div className={`rounded-xl border px-4 py-3 ${
+            sharedStorageDebug.hasUrl ? "border-emerald-200 bg-emerald-50" : "border-amber-200 bg-amber-50"
+          }`}>
+            <p className={`text-sm font-bold ${sharedStorageDebug.hasUrl ? "text-emerald-800" : "text-amber-800"}`}>
+              {sharedStorageDebug.hasUrl ? "✓ Supabase proje URL tanımlı" : "• Supabase proje URL bekleniyor"}
+            </p>
+            <p className="mt-1 text-xs leading-5 text-slate-600">
+              GitHub secret: <strong>VITE_SUPABASE_URL</strong>
+            </p>
+          </div>
+          <div className={`rounded-xl border px-4 py-3 ${
+            sharedStorageDebug.hasKey ? "border-emerald-200 bg-emerald-50" : "border-amber-200 bg-amber-50"
+          }`}>
+            <p className={`text-sm font-bold ${sharedStorageDebug.hasKey ? "text-emerald-800" : "text-amber-800"}`}>
+              {sharedStorageDebug.hasKey ? "✓ Supabase public anahtar tanımlı" : "• Supabase public anahtar bekleniyor"}
+            </p>
+            <p className="mt-1 text-xs leading-5 text-slate-600">
+              Anahtar türü: <strong>{sharedStorageDebug.keyType}</strong>
+            </p>
+          </div>
+          <div className="rounded-xl border border-[#D6DEEA] bg-[#F8FAFD] px-4 py-3">
+            <p className="text-sm font-bold text-[#1F2D5C]">• Ortak tablo</p>
+            <p className="mt-1 text-xs leading-5 text-slate-600">
+              Supabase SQL Editor içinde <strong>supabase-schema.sql</strong> çalıştırılmış olmalı.
+            </p>
+          </div>
+          <div className="rounded-xl border border-[#D6DEEA] bg-[#F8FAFD] px-4 py-3">
+            <p className="text-sm font-bold text-[#1F2D5C]">• Dosya deposu</p>
+            <p className="mt-1 text-xs leading-5 text-slate-600">
+              Büyük dosyalar için <strong>supabase-storage.sql</strong> çalıştırılıp Storage testi yeşile dönmeli.
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* Yedekleme */}

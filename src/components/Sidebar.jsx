@@ -143,6 +143,22 @@ function Sidebar({ mobileOpen, onClose }) {
             </svg>
             İş Nasıl Yapılır
           </NavLink>
+          <NavLink
+            to="/islem-gecmisi"
+            onClick={onClose}
+            className={({ isActive }) =>
+              `flex items-center gap-2 rounded-lg px-2 py-1.5 text-[11px] transition ${
+                isActive ? "bg-white/10 text-white/70" : "text-white/25 hover:text-white/50"
+              }`
+            }
+          >
+            <svg className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path d="M12 8v5l3 2" />
+              <path d="M21 12a9 9 0 11-3-6.7" />
+              <path d="M21 3v6h-6" />
+            </svg>
+            İşlem Geçmişi
+          </NavLink>
         </div>
       </aside>
     </>

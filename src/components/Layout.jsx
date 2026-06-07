@@ -13,6 +13,7 @@ const titles = {
   "/evraklar": "Evrak ve Şablonlar",
   "/sunum-hazirla": "Sunum Hazırla",
   "/ayarlar": "Ayarlar & Veri Yönetimi",
+  "/islem-gecmisi": "İşlem Geçmişi",
 };
 
 function Layout() {

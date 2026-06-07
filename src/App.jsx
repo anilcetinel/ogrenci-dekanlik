@@ -10,6 +10,7 @@ import SunumHazirla from "./pages/SunumHazirla";
 import Evraklar from "./pages/Evraklar";
 import HizliNotGiris from "./pages/HizliNotGiris";
 import Ayarlar from "./pages/Ayarlar";
+import IslemGecmisi from "./pages/IslemGecmisi";
 
 function App() {
   return (
@@ -25,6 +26,7 @@ function App() {
         <Route path="/evraklar" element={<Evraklar />} />
         <Route path="/sunum-hazirla" element={<SunumHazirla />} />
         <Route path="/ayarlar" element={<Ayarlar />} />
+        <Route path="/islem-gecmisi" element={<IslemGecmisi />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>
