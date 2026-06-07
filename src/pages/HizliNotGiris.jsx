@@ -9,6 +9,7 @@ import haftalikLogData from "../data/haftalik-log.json";
 import operasyonData from "../data/operasyon-kutuphanesi.json";
 import evrakData from "../data/evraklar.json";
 import { canEditData } from "../utils/auth";
+import { getWeekKey, getWeekStart, toDateKey } from "../utils/dateKeys";
 import { canEmbedFile, extractTextFromFile, formatFileSize, getDocumentType, getFileExtension, readFileAsDataUrl } from "../utils/fileText";
 import { uploadSharedFile } from "../utils/sharedFiles";
 import { splitLines } from "../utils/storage";
@@ -17,7 +18,7 @@ const dayFmt = new Intl.DateTimeFormat("tr-TR", { day: "2-digit", month: "short"
 const dateFmt = new Intl.DateTimeFormat("tr-TR", { day: "2-digit", month: "long", year: "numeric" });
 
 const emptyForm = {
-  tarih: new Date().toISOString().slice(0, 10),
+  tarih: toDateKey(new Date()),
   kaynak: "Serbest not",
   hazirlayan: "Öğrenci Destek Koordinatörlüğü",
   icerik: "",
@@ -52,15 +53,7 @@ const categoryRules = [
 ];
 
 function weekStart(date) {
-  const d = new Date(date);
-  const day = d.getDay() || 7;
-  d.setHours(0, 0, 0, 0);
-  d.setDate(d.getDate() - day + 1);
-  return d;
-}
-
-function getWeekKey(date) {
-  return weekStart(date).toISOString().slice(0, 10);
+  return getWeekStart(date);
 }
 
 function uniqueItems(items) {
@@ -265,8 +258,8 @@ function HizliNotGiris() {
     const incomingRecord = {
       id: `week-${getWeekKey(formData.tarih)}`,
       haftaLabel,
-      haftaBaslangic: weekStartDate.toISOString().slice(0, 10),
-      haftaBitis: weekEndDate.toISOString().slice(0, 10),
+      haftaBaslangic: toDateKey(weekStartDate),
+      haftaBitis: toDateKey(weekEndDate),
       hazirlayan: formData.hazirlayan || "Öğrenci Destek Koordinatörlüğü",
       operasyonIds: preview.operasyonIds,
       yapilanlar: preview.yapilanlar,

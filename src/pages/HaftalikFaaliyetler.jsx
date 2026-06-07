@@ -7,6 +7,7 @@ import useStoredCollection from "../hooks/useStoredCollection";
 import initialLogs from "../data/haftalik-log.json";
 import operasyonData from "../data/operasyon-kutuphanesi.json";
 import { canEditData } from "../utils/auth";
+import { getDateMonthKey, getWeeklyLogMonthKey, getWeeklyLogStart, getWeekKey, getWeekStart, parseDateOnly, toDateKey } from "../utils/dateKeys";
 import { splitLines } from "../utils/storage";
 
 const dayFmt = new Intl.DateTimeFormat("tr-TR", { day: "2-digit", month: "short" });
@@ -15,11 +16,7 @@ const weekDayLabels = ["Pt", "Sa", "Ça", "Pe", "Cu", "Ct", "Pz"];
 
 // Haftanın Pazartesi başlangıcını bul
 function weekStart(date) {
-  const d = new Date(date);
-  const day = d.getDay() || 7;
-  d.setHours(0, 0, 0, 0);
-  d.setDate(d.getDate() - day + 1);
-  return d;
+  return getWeekStart(date);
 }
 
 function sameWeek(a, b) {
@@ -40,8 +37,7 @@ function buildMonthGrid(monthDate) {
 }
 
 function getMonthKey(date) {
-  const d = new Date(date);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  return getDateMonthKey(date);
 }
 
 function uniqueItems(items) {
@@ -52,18 +48,14 @@ function mergeWeeklyItems(existingItems = [], newItems = []) {
   return uniqueItems([...existingItems, ...newItems]);
 }
 
-function getWeekKey(date) {
-  return weekStart(date).toISOString().slice(0, 10);
-}
-
 function defaultEmptyForm() {
   const bugun = new Date();
   const baslangic = weekStart(bugun);
   const bitis = new Date(baslangic);
   bitis.setDate(baslangic.getDate() + 6);
   return {
-    haftaBaslangic: baslangic.toISOString().slice(0, 10),
-    haftaBitis: bitis.toISOString().slice(0, 10),
+    haftaBaslangic: toDateKey(baslangic),
+    haftaBitis: toDateKey(bitis),
     yapilanlar: "",
     yapilacaklar: "",
     bekleyenler: "",
@@ -107,9 +99,9 @@ function HaftalikFaaliyetler() {
 
   useEffect(() => {
     if (logs.length === 0 || userSelectedWeek) return;
-    const hasSelectedLog = logs.some((log) => sameWeek(log.haftaBaslangic, selectedDate));
+    const hasSelectedLog = logs.some((log) => sameWeek(getWeeklyLogStart(log), selectedDate));
     if (!hasSelectedLog) {
-      const latestLogDate = new Date(logs[0].haftaBaslangic);
+      const latestLogDate = getWeeklyLogStart(logs[0]);
       setSelectedDate(latestLogDate);
       setCurrentMonth(new Date(latestLogDate.getFullYear(), latestLogDate.getMonth(), 1));
     }
@@ -122,7 +114,7 @@ function HaftalikFaaliyetler() {
     const today = new Date();
     setFormData((prev) => ({
       ...prev,
-      haftaBaslangic: prev.haftaBaslangic || weekStart(today).toISOString().slice(0, 10),
+      haftaBaslangic: prev.haftaBaslangic || toDateKey(weekStart(today)),
       operasyonIds: uniqueItems([...(prev.operasyonIds || []), operationId]),
     }));
     if (editable) {
@@ -135,16 +127,16 @@ function HaftalikFaaliyetler() {
 
   // Seçili haftanın kaydı
   const selectedLog = useMemo(
-    () => logs.find((log) => sameWeek(log.haftaBaslangic, selectedDate)) || null,
+    () => logs.find((log) => sameWeek(getWeeklyLogStart(log), selectedDate)) || null,
     [logs, selectedDate],
   );
 
   // Bir günün kaydı var mı?
-  const hasLog = (day) => logs.some((log) => sameWeek(log.haftaBaslangic, day));
+  const hasLog = (day) => logs.some((log) => sameWeek(getWeeklyLogStart(log), day));
   const visibleMonthLogs = useMemo(
     () =>
       logs
-        .filter((log) => getMonthKey(log.haftaBaslangic) === getMonthKey(currentMonth))
+        .filter((log) => getWeeklyLogMonthKey(log) === getMonthKey(currentMonth))
         .sort((a, b) => new Date(a.haftaBaslangic) - new Date(b.haftaBaslangic)),
     [currentMonth, logs],
   );
@@ -173,14 +165,14 @@ function HaftalikFaaliyetler() {
       setFormError("Hafta başlangıcı zorunludur.");
       return;
     }
-    const ws = new Date(formData.haftaBaslangic);
-    const we = formData.haftaBitis ? new Date(formData.haftaBitis) : (() => { const d = new Date(ws); d.setDate(ws.getDate() + 6); return d; })();
+    const ws = parseDateOnly(formData.haftaBaslangic);
+    const we = formData.haftaBitis ? parseDateOnly(formData.haftaBitis) : (() => { const d = new Date(ws); d.setDate(ws.getDate() + 6); return d; })();
     const label = `${dayFmt.format(ws)} – ${dayFmt.format(we)} ${ws.getFullYear()} Haftası`;
     const newRecord = {
       id: `week-${getWeekKey(ws)}`,
       haftaLabel: label,
-      haftaBaslangic: ws.toISOString().slice(0, 10),
-      haftaBitis: we.toISOString().slice(0, 10),
+      haftaBaslangic: toDateKey(ws),
+      haftaBitis: toDateKey(we),
       yapilanlar: splitLines(formData.yapilanlar),
       yapilacaklar: splitLines(formData.yapilacaklar),
       bekleyenler: splitLines(formData.bekleyenler),
@@ -333,14 +325,14 @@ function HaftalikFaaliyetler() {
               <p className="mb-3 text-xs font-bold uppercase tracking-wide text-slate-400">Bu aydaki kayıtlı haftalar</p>
               <div className="space-y-2">
                 {visibleMonthLogs.map((log) => {
-                  const isActive = sameWeek(log.haftaBaslangic, selectedDate);
+                  const isActive = sameWeek(getWeeklyLogStart(log), selectedDate);
                   return (
                     <button
                       key={log.id}
                       type="button"
                       onClick={() => {
                         setUserSelectedWeek(true);
-                        setSelectedDate(new Date(log.haftaBaslangic));
+                        setSelectedDate(getWeeklyLogStart(log));
                       }}
                       className={`w-full rounded-xl border px-3 py-2 text-left text-xs transition ${
                         isActive
@@ -377,7 +369,7 @@ function HaftalikFaaliyetler() {
                   });
                 } else {
                   const f = defaultEmptyForm();
-                  setFormData({ ...f, haftaBaslangic: ws.toISOString().slice(0, 10) });
+                  setFormData({ ...f, haftaBaslangic: toDateKey(ws) });
                 }
                 setModalOpen(true);
               }}
@@ -514,7 +506,7 @@ function HaftalikFaaliyetler() {
                     type="button"
                     onClick={() => {
                       const f = defaultEmptyForm();
-                      setFormData({ ...f, haftaBaslangic: ws.toISOString().slice(0, 10), haftaBitis: we.toISOString().slice(0, 10) });
+                      setFormData({ ...f, haftaBaslangic: toDateKey(ws), haftaBitis: toDateKey(we) });
                       setModalOpen(true);
                     }}
                     className="mt-4 rounded-xl bg-[#00377B] px-4 py-2 text-sm font-medium text-white"

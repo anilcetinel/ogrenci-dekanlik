@@ -1,8 +1,13 @@
+import { getDateMonthKey, getWeeklyLogMonthKey } from "./dateKeys";
+
 const monthFmt = new Intl.DateTimeFormat("tr-TR", { month: "long", year: "numeric" });
 
 export function getMonthKey(date) {
-  const d = new Date(date);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  return getDateMonthKey(date);
+}
+
+export function getLogMonthKey(log) {
+  return getWeeklyLogMonthKey(log);
 }
 
 export function getMonthLabel(key) {
@@ -21,9 +26,9 @@ export function buildVisibleMonthKeys(logs = [], today = new Date()) {
     ...buildYearMonthKeys(currentYear + 1),
   ];
   const logMonths = logs
-    .map((log) => log.haftaBaslangic || log.baslangic || log.tarih)
+    .map((log) => (log.haftaBaslangic ? getLogMonthKey(log) : log.baslangic || log.tarih))
     .filter(Boolean)
-    .map(getMonthKey);
+    .map((value) => (String(value).match(/^\d{4}-\d{2}$/) ? value : getMonthKey(value)));
 
   return [...new Set([...plannedMonths, ...logMonths])].sort();
 }

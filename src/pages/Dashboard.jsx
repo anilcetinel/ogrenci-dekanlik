@@ -10,7 +10,8 @@ import haftalikLogData from "../data/haftalik-log.json";
 import operasyonData from "../data/operasyon-kutuphanesi.json";
 import { canEditData } from "../utils/auth";
 import { getCalendarAlert } from "../utils/calendar";
-import { buildVisibleMonthKeys, getMonthKey, getMonthLabel } from "../utils/months";
+import { getWeeklyLogStart } from "../utils/dateKeys";
+import { buildVisibleMonthKeys, getLogMonthKey, getMonthKey, getMonthLabel } from "../utils/months";
 
 const dateFormatter = new Intl.DateTimeFormat("tr-TR", { day: "2-digit", month: "long", year: "numeric" });
 const shortDateFormatter = new Intl.DateTimeFormat("tr-TR", { day: "2-digit", month: "short" });
@@ -65,7 +66,7 @@ function Dashboard() {
 
   // Seçili aya ait loglar
   const monthLogs = useMemo(
-    () => logs.filter((l) => getMonthKey(l.haftaBaslangic) === selectedMonth),
+    () => logs.filter((l) => getLogMonthKey(l) === selectedMonth),
     [logs, selectedMonth],
   );
 
@@ -96,7 +97,7 @@ function Dashboard() {
   // Bu haftanın kaydı
   const thisWeekLog = useMemo(() => {
     const ws = weekStart(today);
-    return logs.find((l) => weekStart(new Date(l.haftaBaslangic)).getTime() === ws.getTime()) || null;
+    return logs.find((l) => weekStart(getWeeklyLogStart(l)).getTime() === ws.getTime()) || null;
   }, [logs]);
 
   const groupedMonthKeys = useMemo(
@@ -330,7 +331,7 @@ function MonthGroup({ label, keys, selected, logs, onSelect, getLabel }) {
       <div className="overflow-x-auto pb-0.5">
         <div className="flex gap-1.5 min-w-max">
           {keys.map((key) => {
-            const hasData = logs.some((l) => getMonthKey(l.haftaBaslangic) === key);
+            const hasData = logs.some((l) => getLogMonthKey(l) === key);
             const isSelected = selected === key;
             return (
               <button

@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import SharedStatus from "../components/SharedStatus";
 import useStoredCollection from "../hooks/useStoredCollection";
 import haftalikLogData from "../data/haftalik-log.json";
-import { buildVisibleMonthKeys, getMonthKey, getMonthLabel } from "../utils/months";
+import { buildVisibleMonthKeys, getLogMonthKey, getMonthKey, getMonthLabel } from "../utils/months";
 
 const shortFmt  = new Intl.DateTimeFormat("tr-TR", { day: "2-digit", month: "short" });
 
@@ -39,7 +39,7 @@ function YapilanIslerTakibi() {
   const monthlyStats = useMemo(() => {
     const map = new Map();
     logs.forEach((log) => {
-      const key = getMonthKey(log.haftaBaslangic);
+      const key = getLogMonthKey(log);
       const prev = map.get(key) || { key, yapilanlar: 0, yapilacaklar: 0, bekleyenler: 0, sorunlar: 0, haftaSayisi: 0 };
       map.set(key, {
         key,
@@ -63,7 +63,7 @@ function YapilanIslerTakibi() {
   const filteredLogs = useMemo(
     () => selectedMonth === "Tümü"
       ? logs
-      : logs.filter((l) => getMonthKey(l.haftaBaslangic) === selectedMonth),
+      : logs.filter((l) => getLogMonthKey(l) === selectedMonth),
     [logs, selectedMonth],
   );
 
