@@ -132,3 +132,44 @@ export async function clearSharedCollection(collectionKey) {
     },
   });
 }
+
+export async function testSharedStorageConnection() {
+  if (!isSharedStorageEnabled()) {
+    return {
+      ok: false,
+      reason: "VITE_SUPABASE_URL veya VITE_SUPABASE_ANON_KEY tanımlı değil.",
+    };
+  }
+
+  const diagnosticRecord = {
+    id: `diagnostic-${Date.now()}`,
+    createdAt: new Date().toISOString(),
+    source: "ayarlar-ortak-veri-testi",
+  };
+
+  try {
+    await upsertSharedRecords("__diagnostic__", [diagnosticRecord]);
+    const records = await fetchSharedRecords("__diagnostic__");
+    const found = records.some((record) => String(record.id) === String(diagnosticRecord.id));
+
+    await deleteSharedRecord("__diagnostic__", diagnosticRecord.id);
+
+    if (!found) {
+      return {
+        ok: false,
+        reason: "Geçici test kaydı yazıldı ancak okunamadı. Tablo izinlerini kontrol edin.",
+      };
+    }
+
+    return {
+      ok: true,
+      tableName: TABLE_NAME,
+      recordId: diagnosticRecord.id,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      reason: error.message || "Ortak veri bağlantısı test edilemedi.",
+    };
+  }
+}

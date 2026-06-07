@@ -3,6 +3,7 @@ import {
   getSharedStorageDebugInfo,
   getSharedStorageInfo,
   isSharedStorageEnabled,
+  testSharedStorageConnection,
   upsertSharedRecords,
 } from "../utils/sharedStorage";
 import { canEditData } from "../utils/auth";
@@ -27,6 +28,7 @@ function Ayarlar() {
   const [importStatus, setImportStatus] = useState("");
   const [counts, setCounts] = useState(() => Object.fromEntries(COLLECTIONS.map((c) => [c.key, getCount(c.key)])));
   const [syncing, setSyncing] = useState(false);
+  const [testingSharedData, setTestingSharedData] = useState(false);
   const [testingStorage, setTestingStorage] = useState(false);
   const sharedStorageInfo = getSharedStorageInfo();
   const sharedStorageDebug = getSharedStorageDebugInfo();
@@ -70,6 +72,20 @@ function Ayarlar() {
       }
     } finally {
       setTestingStorage(false);
+    }
+  };
+
+  const handleSharedDataTest = async () => {
+    setTestingSharedData(true);
+    try {
+      const result = await testSharedStorageConnection();
+      if (result.ok) {
+        setImportStatus(`success:Ortak veri testi başarılı. ${result.tableName} tablosuna geçici kayıt yazıldı, okundu ve temizlendi.`);
+      } else {
+        setImportStatus(`error:Ortak veri testi başarısız. Detay: ${result.reason}`);
+      }
+    } finally {
+      setTestingSharedData(false);
     }
   };
 
@@ -216,6 +232,14 @@ function Ayarlar() {
               className="rounded-xl bg-[#00377B] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#1F2D5C] disabled:cursor-not-allowed disabled:opacity-40"
             >
               {syncing ? "Aktarılıyor..." : "Yerel Verileri Ortak Alana Aktar"}
+            </button>
+            <button
+              type="button"
+              onClick={handleSharedDataTest}
+              disabled={!sharedStorageInfo.enabled || testingSharedData}
+              className="rounded-xl border border-[#D6DEEA] bg-white px-4 py-2.5 text-sm font-semibold text-[#00377B] transition hover:border-[#00377B] disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              {testingSharedData ? "Test ediliyor..." : "Ortak Veri Bağlantısını Test Et"}
             </button>
             <button
               type="button"

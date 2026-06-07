@@ -37,8 +37,10 @@ VITE_VIEWER_PIN
 VITE_SUPABASE_FILE_BUCKET
 ```
 
-6. Daha önce tarayıcıya girilmiş yerel kayıtlar varsa uygulamada `Ayarlar` sayfasından `Yerel Verileri Ortak Alana Aktar` butonunu kullanın.
-7. Dosya yükleme için `Ayarlar` sayfasındaki `Storage Bağlantısını Test Et` butonunu kullanın.
+6. GitHub Actions deploy tamamlandıktan sonra uygulamada `Ayarlar` sayfasına girin.
+7. Önce `Ortak Veri Bağlantısını Test Et` butonunu kullanın. Test başarılıysa kayıtlar farklı tarayıcılarda ortak görünür.
+8. Büyük dosya paylaşımı için `Storage Bağlantısını Test Et` butonunu kullanın.
+9. Daha önce tarayıcıya girilmiş yerel kayıtlar varsa `Yerel Verileri Ortak Alana Aktar` butonunu kullanın.
 
 ## Dosya Saklama Mantığı
 

@@ -620,32 +620,48 @@ function AkademikTakvim() {
         const result = parseSheetRows(rawRows);
         return { sheetName, totalRows: rawRows.length, ...result };
       });
-      const bestSheet = parsedSheets.sort((a, b) => b.parsedRows.length - a.parsedRows.length)[0];
+      const readableSheets = parsedSheets.filter((sheet) => sheet.headerInfo);
 
-      if (!bestSheet?.headerInfo) {
+      if (readableSheets.length === 0) {
         setImportError(
           "Excel dosyasında Olay ve Tarih alanları bulunamadı. Lütfen dosyada Olay, Başlangıç Tarihi ve Bitiş Tarihi başlıklı sütunlar olduğundan emin olun.",
         );
         return;
       }
 
+      const parsedRows = readableSheets.flatMap((sheet) =>
+        sheet.parsedRows.map((row) => ({
+          ...row,
+          kaynakSayfa: sheet.sheetName,
+        })),
+      );
+      const skippedRows = readableSheets.flatMap((sheet) =>
+        sheet.skippedRows.map((row) => ({
+          ...row,
+          sheetName: sheet.sheetName,
+        })),
+      );
+
       console.log("Akademik takvim Excel import", {
-        sheetName: bestSheet.sheetName,
-        headerRowIndex: bestSheet.headerInfo.headerRowIndex,
-        matchedColumns: bestSheet.headerInfo.matchedColumns,
-        skippedRows: bestSheet.skippedRows,
+        sheets: readableSheets.map((sheet) => ({
+          sheetName: sheet.sheetName,
+          headerRowIndex: sheet.headerInfo.headerRowIndex,
+          matchedColumns: sheet.headerInfo.matchedColumns,
+          parsedCount: sheet.parsedRows.length,
+          skippedCount: sheet.skippedRows.length,
+        })),
+        skippedRows,
       });
 
-      const parsedRows = bestSheet.parsedRows;
       setImportReport({
         fileName: file.name,
-        sheetName: bestSheet.sheetName,
-        headerRowIndex: bestSheet.headerInfo.headerRowIndex,
-        matchedColumns: bestSheet.headerInfo.matchedColumns,
-        totalRows: bestSheet.totalRows,
-        totalDataRows: bestSheet.totalDataRows,
+        sheetName: readableSheets.map((sheet) => sheet.sheetName).join(", "),
+        headerRowIndex: readableSheets.map((sheet) => `${sheet.sheetName}: ${sheet.headerInfo.headerRowIndex + 1}`).join(", "),
+        matchedColumns: readableSheets.map((sheet) => sheet.headerInfo.matchedColumns),
+        totalRows: readableSheets.reduce((total, sheet) => total + sheet.totalRows, 0),
+        totalDataRows: readableSheets.reduce((total, sheet) => total + sheet.totalDataRows, 0),
         parsedCount: parsedRows.length,
-        skippedRows: bestSheet.skippedRows,
+        skippedRows,
       });
 
       if (parsedRows.length === 0) {
@@ -805,8 +821,11 @@ function AkademikTakvim() {
                   </summary>
                   <div className="mt-2 max-h-40 space-y-1 overflow-auto pr-2 text-xs">
                     {importReport.skippedRows.slice(0, 20).map((row) => (
-                      <p key={`${row.rowNumber}-${row.deger}`}>
-                        <span className="font-semibold">Satır {row.rowNumber}:</span> {row.neden}
+                      <p key={`${row.sheetName || "sheet"}-${row.rowNumber}-${row.deger}`}>
+                        <span className="font-semibold">
+                          {row.sheetName ? `${row.sheetName} · ` : ""}Satır {row.rowNumber}:
+                        </span>{" "}
+                        {row.neden}
                         {row.deger ? <span className="text-amber-800"> · {row.deger}</span> : null}
                       </p>
                     ))}
