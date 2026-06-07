@@ -48,14 +48,14 @@ function PinGate({ children }) {
             <p className="font-semibold tracking-wide">Sakarya Üniversitesi</p>
             <div className="flex flex-wrap gap-x-5 gap-y-1 text-white/75">
               <span>sakarya.edu.tr</span>
-              <span>İletişim</span>
+              <span>ogrdekan@sakarya.edu.tr</span>
             </div>
           </div>
         </div>
-        <div className="mx-auto flex max-w-7xl flex-col gap-4 px-5 py-5 lg:flex-row lg:items-center lg:justify-between">
+        <div className="mx-auto flex max-w-7xl flex-col gap-4 px-5 py-5">
           <div className="flex items-center gap-4">
-            <div className="flex h-16 w-64 max-w-full shrink-0 items-center rounded-2xl border border-[#00377B]/15 bg-white px-3 shadow-sm">
-              <img src={logoSrc} alt="Sakarya Üniversitesi" className="h-11 w-full object-contain object-left" />
+            <div className="flex h-20 w-80 max-w-full shrink-0 items-center rounded-2xl border border-[#00377B]/15 bg-white px-4 shadow-sm">
+              <img src={logoSrc} alt="Sakarya Üniversitesi" className="h-14 w-full object-contain object-left" />
             </div>
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.26em] text-slate-400">Sakarya Üniversitesi</p>
@@ -65,9 +65,6 @@ function PinGate({ children }) {
               <p className="mt-1 text-sm font-medium text-slate-500">Faaliyet ve Takip Sistemi</p>
             </div>
           </div>
-          <p className="max-w-md text-sm leading-6 text-slate-500 lg:text-right">
-            Sakarya Üniversitesi öğrenci destek süreçleri için yetkili erişim alanı.
-          </p>
         </div>
       </header>
 
@@ -94,8 +91,8 @@ function PinGate({ children }) {
               className={`rounded-[1.75rem] border border-white/15 bg-white p-7 shadow-2xl transition-transform ${shake ? "animate-bounce" : ""}`}
             >
               <div className="mb-6 text-center">
-                <div className="mx-auto flex h-16 w-56 items-center rounded-2xl border border-[#00377B]/15 bg-white px-3">
-                  <img src={logoSrc} alt="Sakarya Üniversitesi" className="h-11 w-full object-contain" />
+                <div className="mx-auto flex h-20 w-72 max-w-full items-center rounded-2xl border border-[#00377B]/15 bg-white px-4">
+                  <img src={logoSrc} alt="Sakarya Üniversitesi" className="h-14 w-full object-contain" />
                 </div>
                 <h3 className="mt-4 text-xl font-black text-[#00377B]">Sisteme Giriş</h3>
                 <p className="mt-1 text-sm text-slate-500">Yetkili erişim kodunuzu giriniz.</p>
