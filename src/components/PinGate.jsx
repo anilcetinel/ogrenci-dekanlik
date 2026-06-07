@@ -7,6 +7,7 @@ import {
 } from "../utils/auth";
 
 function PinGate({ children }) {
+  const logoSrc = `${import.meta.env.BASE_URL}sau-logo-yatay.png`;
   const [authenticated, setAuthenticated] = useState(
     () => sessionStorage.getItem(AUTH_SESSION_KEY) === "ok",
   );
@@ -53,8 +54,8 @@ function PinGate({ children }) {
         </div>
         <div className="mx-auto flex max-w-7xl flex-col gap-4 px-5 py-5 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-center gap-4">
-            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border border-[#00377B]/20 bg-[#EEF3FA] text-xl font-black text-[#00377B] shadow-sm">
-              SAÜ
+            <div className="flex h-16 w-64 max-w-full shrink-0 items-center rounded-2xl border border-[#00377B]/15 bg-white px-3 shadow-sm">
+              <img src={logoSrc} alt="Sakarya Üniversitesi" className="h-11 w-full object-contain object-left" />
             </div>
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.26em] text-slate-400">Sakarya Üniversitesi</p>
@@ -93,8 +94,8 @@ function PinGate({ children }) {
               className={`rounded-[1.75rem] border border-white/15 bg-white p-7 shadow-2xl transition-transform ${shake ? "animate-bounce" : ""}`}
             >
               <div className="mb-6 text-center">
-                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#00377B] text-sm font-black text-white">
-                  SAÜ
+                <div className="mx-auto flex h-16 w-56 items-center rounded-2xl border border-[#00377B]/15 bg-white px-3">
+                  <img src={logoSrc} alt="Sakarya Üniversitesi" className="h-11 w-full object-contain" />
                 </div>
                 <h3 className="mt-4 text-xl font-black text-[#00377B]">Sisteme Giriş</h3>
                 <p className="mt-1 text-sm text-slate-500">Yetkili erişim kodunuzu giriniz.</p>
@@ -137,14 +138,6 @@ function PinGate({ children }) {
           </div>
         </section>
 
-        <section className="mx-auto -mt-4 max-w-7xl px-5 pb-10">
-          <div className="rounded-3xl border border-[#E5E7EB] bg-white p-5 shadow-sm">
-            <p className="text-sm font-semibold leading-6 text-slate-500">
-              Bu alan Sakarya Üniversitesi Öğrenci Destek Koordinatörlüğü iç kullanımına yöneliktir.
-              Lütfen gerçek kişisel veri girmeden işlem yapınız.
-            </p>
-          </div>
-        </section>
       </main>
 
       <footer className="border-t border-[#E5E7EB] bg-white">
