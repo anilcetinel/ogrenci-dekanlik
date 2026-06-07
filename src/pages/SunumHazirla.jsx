@@ -422,6 +422,27 @@ function SunumHazirla() {
     [logs, selectedLogIds],
   );
 
+  const presentationStats = useMemo(() => {
+    const allYapilanlar = selectedLogs.flatMap((l) => l.yapilanlar || []);
+    const allYapilacaklar = selectedLogs.flatMap((l) => l.yapilacaklar || []);
+    const allBekleyenler = selectedLogs.flatMap((l) => l.bekleyenler || []);
+    const allSorunlar = selectedLogs.flatMap((l) => l.sorunlar || []);
+    const slideCount = 2
+      + (allYapilanlar.length > 0 ? 1 : 0)
+      + (allYapilacaklar.length + allBekleyenler.length > 0 ? 1 : 0)
+      + (allSorunlar.length > 0 ? 1 : 0)
+      + (includeCalendar && calendarAlerts.length > 0 ? 1 : 0)
+      + 1;
+
+    return {
+      yapilanlar: allYapilanlar.length,
+      yapilacaklar: allYapilacaklar.length,
+      bekleyenler: allBekleyenler.length,
+      sorunlar: allSorunlar.length,
+      slideCount,
+    };
+  }, [calendarAlerts.length, includeCalendar, selectedLogs]);
+
   const toggleLog = (id) => {
     setSelectedLogIds((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
@@ -529,136 +550,164 @@ function SunumHazirla() {
   };
 
   return (
-    <div className="space-y-5 max-w-3xl">
-
+    <div className="space-y-6">
       {/* Başlık ve açıklama */}
-      <div className="rounded-2xl border border-[#D6DEEA] bg-gradient-to-r from-[#0E2650] to-[#1F2D5C] px-6 py-5 text-white">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/50">SAÜ Kurumsal</p>
-        <h2 className="mt-1 text-xl font-bold">Sunum Hazırla</h2>
-        <p className="mt-1 text-sm text-white/60">
-          Haftalık faaliyet verilerinden SAÜ kurumsal renklerde PPTX sunum oluşturur.
-        </p>
-      </div>
-
-      {/* Sunum başlığı */}
-      <div className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm space-y-4">
-        <label className="block space-y-2 text-sm font-medium text-slate-700">
-          Sunum Başlığı
-          <input
-            value={sunumBasligi}
-            onChange={(e) => setSunumBasligi(e.target.value)}
-            className="mt-1 block w-full rounded-xl border border-[#D6DEEA] px-4 py-3 text-sm text-[#1F2D5C] outline-none focus:border-[#00377B]"
-            placeholder="Örn. Mayıs 2026 Faaliyet Raporu"
-          />
-        </label>
-
-        {/* Takvim uyarıları dahil */}
-        <label className="flex items-center gap-3 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={includeCalendar}
-            onChange={(e) => setIncludeCalendar(e.target.checked)}
-            className="h-4 w-4 rounded"
-          />
-          <span className="text-sm text-slate-700">
-            Yaklaşan akademik takvim uyarılarını ekle ({calendarAlerts.length} uyarı)
-          </span>
-        </label>
-      </div>
-
-      {/* Hafta seçimi */}
-      <div className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm">
-        <div className="mb-3 flex items-center justify-between">
-          <p className="text-sm font-semibold text-[#1F2D5C]">Dahil edilecek haftalar</p>
-          <div className="flex gap-2">
-            <button type="button" onClick={() => setSelectedLogIds(logs.map((l) => l.id))}
-              className="text-xs text-[#00377B] hover:underline">Tümünü seç</button>
-            <span className="text-slate-300">|</span>
-            <button type="button" onClick={() => setSelectedLogIds([])}
-              className="text-xs text-slate-400 hover:underline">Temizle</button>
-          </div>
-        </div>
-        <div className="space-y-2">
-          {logs.map((log) => {
-            const isSelected = selectedLogIds.includes(log.id);
-            return (
-              <label key={log.id}
-                className={`flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 transition ${
-                  isSelected ? "border-[#00377B] bg-[#EEF3FA]" : "border-[#E5E7EB] bg-white hover:border-[#D6DEEA]"
-                }`}>
-                <input type="checkbox" checked={isSelected} onChange={() => toggleLog(log.id)} className="h-4 w-4" />
-                <div className="flex-1">
-                  <p className="text-sm font-semibold text-[#1F2D5C]">{log.haftaLabel}</p>
-                  <div className="mt-1 flex gap-3 text-xs text-slate-500">
-                    <span className="text-[#1F4D2C]">✓ {(log.yapilanlar || []).length} yapılan</span>
-                    <span className="text-[#00377B]">→ {(log.yapilacaklar || []).length} yapılacak</span>
-                    {(log.bekleyenler || []).length > 0 && (
-                      <span className="text-[#A34D00]">⏳ {log.bekleyenler.length} bekleyen</span>
-                    )}
-                  </div>
-                </div>
-              </label>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Sunum önizleme */}
-      {selectedLogs.length > 0 && (() => {
-        const allY = selectedLogs.flatMap((l) => l.yapilanlar || []);
-        const allP = selectedLogs.flatMap((l) => l.yapilacaklar || []);
-        const allB = selectedLogs.flatMap((l) => l.bekleyenler || []);
-        const slideCount = 2
-          + (allY.length > 0 ? 1 : 0)
-          + (allP.length + allB.length > 0 ? 1 : 0)
-          + (includeCalendar && calendarAlerts.length > 0 ? 1 : 0)
-          + 1; // kapanış
-        return (
-          <div className="rounded-xl border border-[#D6DEEA] bg-[#F8FAFD] px-5 py-4">
-            <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-400">Sunum içeriği</p>
-            <div className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-3">
-              {[
-                { label: "Kapak slaytı", val: "1" },
-                { label: "Dönem özeti", val: "1" },
-                { label: "Yapılanlar", val: `${Math.min(allY.length, 6)} madde` },
-                { label: "Planlanan & Bekleyen", val: `${Math.min(allP.length + allB.length, 6)} madde` },
-                includeCalendar && calendarAlerts.length > 0 ? { label: "Takvim uyarıları", val: `${Math.min(calendarAlerts.length, 6)} olay` } : null,
-                { label: "Kapanış", val: "1" },
-              ].filter(Boolean).map((row) => (
-                <div key={row.label} className="flex items-center gap-2 rounded-lg border border-[#E5E7EB] bg-white px-3 py-2">
-                  <span className="h-1.5 w-1.5 rounded-full bg-[#00377B]" />
-                  <span className="text-slate-600">{row.label}</span>
-                  <span className="ml-auto text-xs font-semibold text-[#00377B]">{row.val}</span>
-                </div>
-              ))}
-            </div>
-            <p className="mt-3 text-right text-xs font-semibold text-[#1F2D5C]">
-              Toplam <span className="text-[#F58220]">{slideCount} slayt</span> · SAÜ kurumsal renkleri · PPTX
+      <section className="overflow-hidden rounded-[1.6rem] border border-[#D6DEEA] bg-white shadow-sm">
+        <div className="h-2 bg-gradient-to-r from-[#00377B] via-[#1F2D5C] to-[#F58220]" />
+        <div className="flex flex-col gap-5 px-6 py-5 xl:flex-row xl:items-center xl:justify-between">
+          <div className="max-w-3xl">
+            <p className="text-xs font-bold uppercase tracking-[0.26em] text-[#8A9AB5]">SAÜ Kurumsal Sunum</p>
+            <h2 className="mt-1 text-2xl font-extrabold text-[#1F2D5C]">Sunum Hazırla</h2>
+            <p className="mt-2 text-sm leading-6 text-[#60708B]">
+              Haftalık faaliyet kayıtlarından kurumsal renklere uygun, yönetici sunumuna hazır PPTX dosyası oluşturun.
             </p>
           </div>
-        );
-      })()}
-
-      {/* Oluştur butonu */}
-      {done && (
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-          ✓ Sunum başarıyla oluşturuldu ve indirildi!
+          <div className="grid grid-cols-3 gap-2 sm:min-w-[360px]">
+            {[
+              { label: "Hafta", value: selectedLogs.length },
+              { label: "Slayt", value: selectedLogs.length > 0 ? presentationStats.slideCount : 0 },
+              { label: "Uyarı", value: includeCalendar ? calendarAlerts.length : 0 },
+            ].map((item) => (
+              <div key={item.label} className="rounded-2xl border border-[#D6DEEA] bg-[#F8FAFD] px-3 py-3 text-center">
+                <p className="text-2xl font-extrabold text-[#00377B]">{item.value}</p>
+                <p className="mt-1 text-[11px] font-bold uppercase tracking-wide text-[#8A9AB5]">{item.label}</p>
+              </div>
+            ))}
+          </div>
         </div>
-      )}
-      {errorMessage && (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          {errorMessage}
-        </div>
-      )}
+      </section>
 
-      <button
-        type="button"
-        onClick={handleGenerate}
-        disabled={generating || selectedLogs.length === 0}
-        className="w-full rounded-xl bg-[#00377B] py-3.5 text-sm font-semibold text-white transition hover:bg-[#1F2D5C] disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        {generating ? "Sunum oluşturuluyor…" : "⬇ PPTX Sunum İndir"}
-      </button>
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1.05fr)_minmax(360px,0.95fr)]">
+        <div className="space-y-5">
+          {/* Sunum başlığı */}
+          <section className="overflow-hidden rounded-[1.35rem] border border-[#D6DEEA] bg-white shadow-sm">
+            <div className="border-b border-[#E5E7EB] px-5 py-4">
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#8A9AB5]">Sunum Ayarları</p>
+              <h3 className="mt-1 text-lg font-extrabold text-[#1F2D5C]">Başlık ve kapsam</h3>
+            </div>
+            <div className="space-y-4 p-5">
+              <label className="block space-y-2 text-sm font-bold text-[#60708B]">
+                <span>Sunum başlığı</span>
+                <input
+                  value={sunumBasligi}
+                  onChange={(e) => setSunumBasligi(e.target.value)}
+                  className="block w-full rounded-xl border border-[#D6DEEA] bg-[#FBFCFE] px-4 py-3 text-sm font-bold text-[#1F2D5C] outline-none transition focus:border-[#00377B] focus:bg-white focus:ring-4 focus:ring-[#00377B]/10"
+                  placeholder="Örn. Mayıs 2026 Faaliyet Raporu"
+                />
+              </label>
+
+              <label className="flex cursor-pointer items-center justify-between gap-4 rounded-2xl border border-[#D6DEEA] bg-[#F8FAFD] px-4 py-3">
+                <div>
+                  <p className="text-sm font-extrabold text-[#1F2D5C]">Akademik takvim uyarıları</p>
+                  <p className="mt-0.5 text-xs text-[#60708B]">{calendarAlerts.length} yaklaşan olay sunuma eklenebilir.</p>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={includeCalendar}
+                  onChange={(e) => setIncludeCalendar(e.target.checked)}
+                  className="h-5 w-5 rounded border-[#D6DEEA] accent-[#00377B]"
+                />
+              </label>
+            </div>
+          </section>
+
+          {/* Hafta seçimi */}
+          <section className="overflow-hidden rounded-[1.35rem] border border-[#D6DEEA] bg-white shadow-sm">
+            <div className="flex items-center justify-between gap-4 border-b border-[#E5E7EB] px-5 py-4">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#8A9AB5]">Veri Seçimi</p>
+                <h3 className="mt-1 text-lg font-extrabold text-[#1F2D5C]">Dahil edilecek haftalar</h3>
+              </div>
+              <div className="flex gap-2">
+                <button type="button" onClick={() => setSelectedLogIds(logs.map((l) => l.id))}
+                  className="rounded-lg border border-[#D6DEEA] bg-white px-3 py-2 text-xs font-bold text-[#00377B] hover:border-[#00377B]">Tümünü seç</button>
+                <button type="button" onClick={() => setSelectedLogIds([])}
+                  className="rounded-lg border border-[#D6DEEA] bg-white px-3 py-2 text-xs font-bold text-[#60708B] hover:border-[#00377B]">Temizle</button>
+              </div>
+            </div>
+            <div className="max-h-[420px] space-y-2 overflow-y-auto p-5">
+              {logs.length === 0 && (
+                <div className="rounded-2xl border border-dashed border-[#D6DEEA] bg-[#F8FAFD] p-5 text-sm text-[#8A9AB5]">
+                  Sunuma eklenecek haftalık faaliyet kaydı bulunamadı.
+                </div>
+              )}
+              {logs.map((log) => {
+                const isSelected = selectedLogIds.includes(log.id);
+                return (
+                  <label key={log.id}
+                    className={`flex cursor-pointer items-start gap-3 rounded-2xl border px-4 py-3 transition ${
+                      isSelected ? "border-[#00377B] bg-[#EEF3FA] ring-2 ring-[#00377B]/10" : "border-[#E5E7EB] bg-white hover:border-[#BFD0E6] hover:bg-[#F8FAFD]"
+                    }`}>
+                    <input type="checkbox" checked={isSelected} onChange={() => toggleLog(log.id)} className="mt-1 h-4 w-4 accent-[#00377B]" />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-extrabold text-[#1F2D5C]">{log.haftaLabel}</p>
+                      <div className="mt-2 flex flex-wrap gap-2 text-xs font-bold">
+                        <span className="rounded-full bg-[#F0FFF6] px-2 py-1 text-[#1F4D2C]">{(log.yapilanlar || []).length} yapılan</span>
+                        <span className="rounded-full bg-[#EEF3FA] px-2 py-1 text-[#00377B]">{(log.yapilacaklar || []).length} yapılacak</span>
+                        <span className="rounded-full bg-[#FFF8F1] px-2 py-1 text-[#9A4A00]">{(log.bekleyenler || []).length} bekleyen</span>
+                      </div>
+                    </div>
+                  </label>
+                );
+              })}
+            </div>
+          </section>
+        </div>
+
+        <aside className="space-y-5">
+          {/* Sunum önizleme */}
+          <section className="overflow-hidden rounded-[1.35rem] border border-[#D6DEEA] bg-white shadow-sm">
+            <div className="border-b border-[#E5E7EB] px-5 py-4">
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#8A9AB5]">Çıktı Özeti</p>
+              <h3 className="mt-1 text-lg font-extrabold text-[#1F2D5C]">Sunum içeriği</h3>
+            </div>
+            <div className="space-y-3 p-5">
+              {[
+                { label: "Kapak slaytı", val: "1", color: "#00377B" },
+                { label: "Dönem özeti", val: "1", color: "#1F2D5C" },
+                { label: "Yapılanlar", val: `${Math.min(presentationStats.yapilanlar, 6)} madde`, color: "#1F4D2C" },
+                { label: "Planlanan ve bekleyen", val: `${Math.min(presentationStats.yapilacaklar + presentationStats.bekleyenler, 6)} madde`, color: "#00377B" },
+                presentationStats.sorunlar > 0 ? { label: "Riskler", val: `${Math.min(presentationStats.sorunlar, 6)} madde`, color: "#B42318" } : null,
+                includeCalendar && calendarAlerts.length > 0 ? { label: "Takvim uyarıları", val: `${Math.min(calendarAlerts.length, 6)} olay`, color: "#F58220" } : null,
+                { label: "Kapanış", val: "1", color: "#1F2D5C" },
+              ].filter(Boolean).map((row) => (
+                <div key={row.label} className="flex items-center gap-3 rounded-2xl border border-[#E5EAF2] bg-[#F8FAFD] px-4 py-3">
+                  <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: row.color }} />
+                  <span className="text-sm font-bold text-[#42526E]">{row.label}</span>
+                  <span className="ml-auto rounded-full bg-white px-2.5 py-1 text-xs font-extrabold text-[#00377B]">{row.val}</span>
+                </div>
+              ))}
+              <div className="rounded-2xl border border-[#BFD0E6] bg-[#EEF3FA] px-4 py-4 text-center">
+                <p className="text-4xl font-extrabold text-[#00377B]">{selectedLogs.length > 0 ? presentationStats.slideCount : 0}</p>
+                <p className="mt-1 text-xs font-bold uppercase tracking-wide text-[#60708B]">Toplam slayt</p>
+              </div>
+            </div>
+          </section>
+
+          {done && (
+            <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">
+              Sunum başarıyla oluşturuldu ve indirildi.
+            </div>
+          )}
+          {errorMessage && (
+            <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+              {errorMessage}
+            </div>
+          )}
+
+          <button
+            type="button"
+            onClick={handleGenerate}
+            disabled={generating || selectedLogs.length === 0}
+            className="w-full rounded-2xl bg-[#00377B] py-4 text-sm font-extrabold text-white shadow-sm transition hover:bg-[#1F2D5C] disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {generating ? "Sunum oluşturuluyor..." : "PPTX Sunum İndir"}
+          </button>
+          <p className="text-center text-xs font-semibold text-[#8A9AB5]">
+            İndirme tarayıcı üzerinden yapılır; veri sunucuya gönderilmez.
+          </p>
+        </aside>
+      </div>
     </div>
   );
 }
