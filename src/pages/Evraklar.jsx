@@ -329,7 +329,8 @@ function Evraklar() {
               <div>
                 <p className="text-sm font-semibold text-[#1F2D5C]">Yerel dosya seç</p>
                 <p className="mt-1 text-xs leading-5 text-slate-500">
-                  Dosya sunucuya yüklenmez. Excel, CSV, TXT, PDF ve DOCX içerikleri açıklama alanına aktarılabilir.
+                  Supabase Storage aktifse dosya ortak alana yüklenir; aktif değilse küçük dosya kayıt içine eklenir veya yalnızca metin özeti saklanır.
+                  Excel, CSV, TXT, PDF ve DOCX içerikleri açıklama alanına aktarılabilir.
                 </p>
               </div>
               <label className="inline-flex cursor-pointer rounded-xl border border-[#D6DEEA] bg-white px-4 py-3 text-sm font-semibold text-[#1F2D5C]">
