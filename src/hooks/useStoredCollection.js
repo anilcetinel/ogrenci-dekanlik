@@ -224,6 +224,32 @@ function useStoredCollection(storageKey, demoRecords, options = {}) {
     });
   };
 
+  const updateRecordByKey = (record, getKey, updateFn) => {
+    const key = getKey(record);
+    const visibleRecords = mergeDemoAndStored(demoRecords, storedRecords);
+    const existingRecord = visibleRecords.find((item) => getKey(item) === key);
+
+    if (!existingRecord) {
+      return false;
+    }
+
+    const nextRecord = updateFn(existingRecord, record);
+    const hasStoredRecord = storedRecords.some((item) => getKey(item) === key);
+    const nextRecords = hasStoredRecord
+      ? storedRecords.map((item) => (getKey(item) === key ? nextRecord : item))
+      : [...storedRecords, nextRecord];
+
+    persistRecords(nextRecords, [nextRecord]);
+    appendAuditLog({
+      action: "Kayıt güncellendi",
+      collectionKey: storageKey,
+      recordId: nextRecord.id,
+      summary: summarizeRecord(nextRecord),
+    });
+
+    return true;
+  };
+
   const clearRecords = () => {
     persistRecords([], []);
     if (storageKey !== AUDIT_LOG_KEY && storedRecords.length > 0) {
@@ -269,6 +295,7 @@ function useStoredCollection(storageKey, demoRecords, options = {}) {
     addRecords,
     upsertRecords,
     mergeRecord,
+    updateRecordByKey,
     deleteRecord,
     clearRecords,
   };

@@ -178,7 +178,7 @@ function buildPreview(formData, operations) {
 
 function HizliNotGiris() {
   const editable = canEditData();
-  const { records: logs, mergeRecord } = useStoredCollection("haftalikLogRecords", haftalikLogData, {
+  const { mergeRecord, updateRecordByKey } = useStoredCollection("haftalikLogRecords", haftalikLogData, {
     sortByDateField: "haftaBaslangic",
   });
   const { records: operations } = useStoredCollection("operasyonRecords", operasyonData);
@@ -269,20 +269,17 @@ function HizliNotGiris() {
     if (window.confirm("Bu hızlı not kaydı silinsin mi? Bu nottan haftalık faaliyet panosuna işlenen maddeler de kaldırılır.")) {
       const contribution = getNoteContribution(note, operations);
       const getRecordKey = (record) => getWeekKey(getWeeklyLogStart(record));
-      const hasWeeklyRecord = logs.some((record) => getRecordKey(record) === getWeekKey(contribution.haftaBaslangic));
-      if (hasWeeklyRecord) {
-        mergeRecord(
-          contribution,
-          getRecordKey,
-          (existingRecord, removedContribution) => ({
-            ...existingRecord,
-            yapilanlar: removeWeeklyItems(existingRecord.yapilanlar, removedContribution.yapilanlar),
-            yapilacaklar: removeWeeklyItems(existingRecord.yapilacaklar, removedContribution.yapilacaklar),
-            bekleyenler: removeWeeklyItems(existingRecord.bekleyenler, removedContribution.bekleyenler),
-            sorunlar: removeWeeklyItems(existingRecord.sorunlar, removedContribution.sorunlar),
-          }),
-        );
-      }
+      updateRecordByKey(
+        contribution,
+        getRecordKey,
+        (existingRecord, removedContribution) => ({
+          ...existingRecord,
+          yapilanlar: removeWeeklyItems(existingRecord.yapilanlar, removedContribution.yapilanlar),
+          yapilacaklar: removeWeeklyItems(existingRecord.yapilacaklar, removedContribution.yapilacaklar),
+          bekleyenler: removeWeeklyItems(existingRecord.bekleyenler, removedContribution.bekleyenler),
+          sorunlar: removeWeeklyItems(existingRecord.sorunlar, removedContribution.sorunlar),
+        }),
+      );
       deleteNote(note.id);
       setSuccessMessage("Hızlı not ve bu nottan haftalık panoya işlenen maddeler silindi.");
     }
