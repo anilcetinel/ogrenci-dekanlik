@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import FormModal from "../components/FormModal";
-import SharedStatus from "../components/SharedStatus";
 import SuccessMessage from "../components/SuccessMessage";
 import useStoredCollection from "../hooks/useStoredCollection";
 import initialLogs from "../data/haftalik-log.json";
@@ -48,6 +47,42 @@ function mergeWeeklyItems(existingItems = [], newItems = []) {
   return uniqueItems([...existingItems, ...newItems]);
 }
 
+function WeeklySyncStatus({ syncStatus, count }) {
+  const meta = {
+    "ortak-veri-aktif": {
+      label: "Ortak veri aktif",
+      detail: `${count} kayıt izleniyor`,
+      className: "border-[#BFD0E6] bg-[#EEF3FA] text-[#00377B]",
+    },
+    "ortak-veri-hatasi": {
+      label: "Ortak veri bağlantısı yok",
+      detail: "Yerel yedek gösteriliyor",
+      className: "border-red-200 bg-red-50 text-red-700",
+    },
+    "ortak-veri-baglaniyor": {
+      label: "Ortak veri alınıyor",
+      detail: "Bağlantı kontrol ediliyor",
+      className: "border-[#BFD0E6] bg-[#EEF3FA] text-[#00377B]",
+    },
+    yerel: {
+      label: "Yerel mod",
+      detail: "Supabase ayarı görünmüyor",
+      className: "border-[#D6DEEA] bg-white text-[#1F2D5C]",
+    },
+  };
+  const current = meta[syncStatus] || meta.yerel;
+
+  return (
+    <div className="flex justify-end">
+      <div className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold ${current.className}`}>
+        <span className="h-1.5 w-1.5 rounded-full bg-current" />
+        <span>{current.label}</span>
+        <span className="font-medium opacity-65">· {current.detail}</span>
+      </div>
+    </div>
+  );
+}
+
 function defaultEmptyForm() {
   const bugun = new Date();
   const baslangic = weekStart(bugun);
@@ -66,10 +101,10 @@ function defaultEmptyForm() {
 }
 
 const boardCols = [
-  { key: "yapilanlar", label: "Yapılanlar", bg: "bg-[#EEF7F0]", text: "text-[#1F4D2C]", dot: "bg-[#1F4D2C]", icon: "✓" },
+  { key: "yapilanlar", label: "Yapılanlar", bg: "bg-[#EEF3FA]", text: "text-[#00377B]", dot: "bg-[#00377B]", icon: "✓" },
   { key: "yapilacaklar", label: "Yapılacaklar", bg: "bg-[#EEF3FA]", text: "text-[#00377B]", dot: "bg-[#00377B]", icon: "→" },
-  { key: "bekleyenler", label: "Bekleyenler", bg: "bg-[#FFF3E8]", text: "text-[#A34D00]", dot: "bg-[#F58220]", icon: "⏳" },
-  { key: "sorunlar", label: "Sorunlar / Riskler", bg: "bg-red-50", text: "text-red-700", dot: "bg-red-500", icon: "!" },
+  { key: "bekleyenler", label: "Bekleyenler", bg: "bg-[#F8FAFD]", text: "text-[#1F2D5C]", dot: "bg-[#1F2D5C]", icon: "•" },
+  { key: "sorunlar", label: "Sorunlar / Riskler", bg: "bg-[#F8FAFD]", text: "text-[#1F2D5C]", dot: "bg-[#F58220]", icon: "!" },
 ];
 
 function HaftalikFaaliyetler() {
@@ -243,32 +278,36 @@ function HaftalikFaaliyetler() {
   return (
     <div className="space-y-5">
       <SuccessMessage>{successMessage}</SuccessMessage>
-      <SharedStatus syncStatus={syncStatus} count={logs.length} label="Haftalık faaliyet ortak veri durumu" />
+      <WeeklySyncStatus syncStatus={syncStatus} count={logs.length} />
 
-      <div className="grid gap-5 lg:grid-cols-[280px_1fr]">
+      <div className="grid gap-5 lg:grid-cols-[300px_1fr]">
 
         {/* Sol: Mini takvim */}
         <div className="space-y-3">
-          <div className="rounded-2xl border border-[#E5E7EB] bg-white p-4 shadow-sm">
+          <div className="overflow-hidden rounded-3xl border border-[#D6DEEA] bg-white shadow-sm">
+            <div className="h-1.5 bg-gradient-to-r from-[#00377B] via-[#1F2D5C] to-[#F58220]" />
+            <div className="p-4">
             {/* Ay gezinme */}
             <div className="mb-4 flex items-center justify-between">
               <button
                 type="button"
                 onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1))}
-                className="rounded-lg border border-[#D6DEEA] px-2.5 py-1.5 text-sm text-[#1F2D5C] hover:border-[#00377B]"
+                className="rounded-xl border border-[#D6DEEA] bg-[#F8FAFD] px-3 py-2 text-sm font-bold text-[#1F2D5C] hover:border-[#00377B]"
               >‹</button>
-              <p className="text-sm font-bold text-[#1F2D5C] capitalize">{monthFmt.format(currentMonth)}</p>
+              <div className="text-center">
+                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Takvim</p>
+                <p className="text-base font-black text-[#1F2D5C] capitalize">{monthFmt.format(currentMonth)}</p>
+              </div>
               <button
                 type="button"
                 onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1))}
-                className="rounded-lg border border-[#D6DEEA] px-2.5 py-1.5 text-sm text-[#1F2D5C] hover:border-[#00377B]"
+                className="rounded-xl border border-[#D6DEEA] bg-[#F8FAFD] px-3 py-2 text-sm font-bold text-[#1F2D5C] hover:border-[#00377B]"
               >›</button>
             </div>
 
-            <div className="mb-3 rounded-xl border border-[#D6DEEA] bg-[#F8FAFD] px-3 py-2">
-              <p className="text-xs font-semibold text-[#1F2D5C]">Hafta seçmek için takvimde bir güne tıklayın</p>
-              <p className="mt-0.5 text-[11px] leading-4 text-slate-500">
-                Turuncu işaretli haftalarda faaliyet kaydı var. Hızlı Not Girişi’nden kaydedilen notlar da not tarihinin haftasına otomatik düşer.
+            <div className="mb-3 rounded-2xl border border-[#D6DEEA] bg-[#F8FAFD] px-3 py-2">
+              <p className="text-[11px] leading-4 text-slate-500">
+                Kayıtlı haftalar turuncu nokta ile gösterilir. Haftayı görmek için ilgili güne tıklayın.
               </p>
             </div>
 
@@ -318,10 +357,11 @@ function HaftalikFaaliyetler() {
               <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-[#F58220]" /> Kayıt var</span>
               <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-[#00377B]" /> Bugün</span>
             </div>
+            </div>
           </div>
 
           {visibleMonthLogs.length > 0 && (
-            <div className="rounded-2xl border border-[#E5E7EB] bg-white p-4 shadow-sm">
+            <div className="rounded-3xl border border-[#D6DEEA] bg-white p-4 shadow-sm">
               <p className="mb-3 text-xs font-bold uppercase tracking-wide text-slate-400">Bu aydaki kayıtlı haftalar</p>
               <div className="space-y-2">
                 {visibleMonthLogs.map((log) => {
@@ -378,14 +418,6 @@ function HaftalikFaaliyetler() {
               {selectedLog ? "✎ Haftayı Düzenle" : "+ Yeni Haftalık Kayıt"}
             </button>
           )}
-
-          <button
-            type="button"
-            onClick={() => window.print()}
-            className="w-full rounded-xl border border-[#D6DEEA] py-2.5 text-sm font-medium text-[#1F2D5C] transition hover:border-[#00377B] print:hidden"
-          >
-            Yazdır / PDF
-          </button>
         </div>
 
         {/* Sağ: Seçili hafta panosu */}
@@ -393,21 +425,22 @@ function HaftalikFaaliyetler() {
           {selectedLog ? (
             <div className="space-y-4">
               {/* Başlık */}
-              <div className="rounded-2xl border border-[#E5E7EB] bg-white px-5 py-4 shadow-sm">
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-                    Takvimden seçilen hafta
-                  </p>
-                  <span className="rounded-full bg-[#EEF7F0] px-3 py-1 text-xs font-semibold text-[#1F4D2C]">
-                    Kayıt görüntüleniyor
-                  </span>
-                </div>
-                <h2 className="mt-1 text-lg font-bold text-[#1F2D5C]">{selectedLog.haftaLabel}</h2>
-                <p className="mt-1 text-xs text-slate-400">
-                  Farklı bir haftanın faaliyetlerini görmek için soldaki takvimden kayıtlı bir haftaya tıklayın.
-                </p>
-                <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-slate-500">
-                  <span>{selectedLog.hazirlayan}</span>
+              <div className="overflow-hidden rounded-3xl border border-[#D6DEEA] bg-white shadow-sm">
+                <div className="h-1.5 bg-gradient-to-r from-[#00377B] via-[#1F2D5C] to-[#F58220]" />
+                <div className="px-6 py-5">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">
+                        Seçili hafta
+                      </p>
+                      <h2 className="mt-2 text-2xl font-black tracking-tight text-[#1F2D5C]">{selectedLog.haftaLabel}</h2>
+                      <p className="mt-1 text-sm text-slate-500">{selectedLog.hazirlayan}</p>
+                    </div>
+                    <span className="inline-flex rounded-full border border-[#BFD0E6] bg-[#EEF3FA] px-3 py-1 text-xs font-bold text-[#00377B]">
+                      Kayıt görüntüleniyor
+                    </span>
+                  </div>
+                <div className="mt-4 flex flex-wrap items-center gap-2 text-sm text-slate-500">
                   {(selectedLog.operasyonIds || []).map((id) => (
                     <span key={id} className="rounded-md bg-[#EEF3FA] px-2 py-0.5 text-xs font-semibold text-[#00377B]">
                       {getOpName(id)}
@@ -423,6 +456,7 @@ function HaftalikFaaliyetler() {
                     </button>
                   )}
                 </div>
+                </div>
               </div>
 
               {/* Yönetici pano kolonları */}
@@ -430,7 +464,9 @@ function HaftalikFaaliyetler() {
                 {boardCols.map((col) => {
                   const items = selectedLog[col.key] || [];
                   return (
-                    <div key={col.key} className={`rounded-2xl border border-[#E5E7EB] ${col.bg} p-4`}>
+                    <div key={col.key} className={`overflow-hidden rounded-3xl border ${col.bg} shadow-sm`}>
+                      <div className="h-1 bg-[#00377B]" />
+                      <div className="p-4">
                       <div className="mb-3 flex items-center gap-2">
                         <span className={`h-2 w-2 rounded-full ${col.dot}`} />
                         <p className={`text-xs font-bold uppercase tracking-wide ${col.text}`}>{col.label}</p>
@@ -483,8 +519,11 @@ function HaftalikFaaliyetler() {
                           )}
                         </ul>
                       ) : (
-                        <p className="text-xs text-slate-400">Bu haftada kayıt yok.</p>
+                        <div className="rounded-2xl border border-dashed border-[#D6DEEA] bg-white/70 px-3 py-5 text-center">
+                          <p className="text-xs font-medium text-slate-400">Bu haftada kayıt yok.</p>
+                        </div>
                       )}
+                      </div>
                     </div>
                   );
                 })}
