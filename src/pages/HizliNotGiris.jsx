@@ -64,6 +64,36 @@ function mergeWeeklyItems(existingItems = [], newItems = []) {
   return uniqueItems([...existingItems, ...newItems]);
 }
 
+function removeWeeklyItems(existingItems = [], removedItems = []) {
+  const removed = new Set(removedItems.filter(Boolean));
+  return existingItems.filter((item) => !removed.has(item));
+}
+
+function getNoteContribution(note, operations) {
+  const preview = note.haftalikKatki || buildPreview(
+    {
+      icerik: note.icerik || "",
+      operasyonIds: note.operasyonIds || [],
+    },
+    operations,
+  );
+  const weekStartDate = weekStart(note.tarih);
+  const weekEndDate = new Date(weekStartDate);
+  weekEndDate.setDate(weekStartDate.getDate() + 6);
+
+  return {
+    id: `week-${getWeekKey(note.tarih)}`,
+    haftaLabel: note.haftaLabel || `${dayFmt.format(weekStartDate)} – ${dayFmt.format(weekEndDate)} ${weekStartDate.getFullYear()} Haftası`,
+    haftaBaslangic: note.haftaBaslangic || toDateKey(weekStartDate),
+    haftaBitis: note.haftaBitis || toDateKey(weekEndDate),
+    operasyonIds: preview.operasyonIds || [],
+    yapilanlar: preview.yapilanlar || [],
+    yapilacaklar: preview.yapilacaklar || [],
+    bekleyenler: preview.bekleyenler || [],
+    sorunlar: preview.sorunlar || [],
+  };
+}
+
 function splitNoteSentences(value) {
   return splitLines(value)
     .flatMap((line) => line.split(/(?<=[.!?])\s+|;\s+/))
@@ -236,9 +266,24 @@ function HizliNotGiris() {
   };
 
   const handleDeleteNote = (note) => {
-    if (window.confirm("Bu hızlı not kaydı silinsin mi? Haftalık faaliyete işlenmiş maddeler ayrıca haftalık kayıtta kalır.")) {
+    if (window.confirm("Bu hızlı not kaydı silinsin mi? Bu nottan haftalık faaliyet panosuna işlenen maddeler de kaldırılır.")) {
+      const contribution = getNoteContribution(note, operations);
+      const hasWeeklyRecord = logs.some((record) => getWeekKey(record.haftaBaslangic) === getWeekKey(contribution.haftaBaslangic));
+      if (hasWeeklyRecord) {
+        mergeRecord(
+          contribution,
+          (record) => getWeekKey(record.haftaBaslangic),
+          (existingRecord, removedContribution) => ({
+            ...existingRecord,
+            yapilanlar: removeWeeklyItems(existingRecord.yapilanlar, removedContribution.yapilanlar),
+            yapilacaklar: removeWeeklyItems(existingRecord.yapilacaklar, removedContribution.yapilacaklar),
+            bekleyenler: removeWeeklyItems(existingRecord.bekleyenler, removedContribution.bekleyenler),
+            sorunlar: removeWeeklyItems(existingRecord.sorunlar, removedContribution.sorunlar),
+          }),
+        );
+      }
       deleteNote(note.id);
-      setSuccessMessage("Hızlı not kaydı silindi.");
+      setSuccessMessage("Hızlı not ve bu nottan haftalık panoya işlenen maddeler silindi.");
     }
   };
 
@@ -292,6 +337,16 @@ function HizliNotGiris() {
       hazirlayan: formData.hazirlayan,
       icerik: formData.icerik,
       operasyonIds: preview.operasyonIds,
+      haftalikKatki: {
+        operasyonIds: preview.operasyonIds,
+        yapilanlar: preview.yapilanlar,
+        yapilacaklar: preview.yapilacaklar,
+        bekleyenler: preview.bekleyenler,
+        sorunlar: preview.sorunlar,
+      },
+      haftaLabel,
+      haftaBaslangic: toDateKey(weekStartDate),
+      haftaBitis: toDateKey(weekEndDate),
       dosyalar: attachedFiles,
       olusturulma: new Date().toISOString(),
     });
