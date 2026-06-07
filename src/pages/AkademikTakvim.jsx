@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import * as XLSX from "xlsx";
 import Badge from "../components/Badge";
 import FormModal from "../components/FormModal";
@@ -40,6 +40,9 @@ const emptyForm = {
   aciklama: "",
   operasyonIds: [],
 };
+
+const audioStorageKey = "akademikTakvimSesliUyariAktif";
+const audioNoticeStorageKey = "akademikTakvimSonSesliUyari";
 
 const columnAliases = {
   ad: ["olay", "olay adı", "etkinlik", "başlık", "faaliyet", "işlem", "açıklama"],
@@ -418,6 +421,39 @@ function CalendarSyncStatus({ syncStatus, count, debugInfo }) {
   );
 }
 
+async function playAcademicAlertTone() {
+  const AudioContext = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContext) {
+    return;
+  }
+
+  const context = new AudioContext();
+  if (context.state === "suspended") {
+    await context.resume();
+  }
+
+  const notes = [
+    { frequency: 740, start: 0, duration: 0.12 },
+    { frequency: 988, start: 0.16, duration: 0.16 },
+  ];
+
+  notes.forEach((note) => {
+    const oscillator = context.createOscillator();
+    const gain = context.createGain();
+    oscillator.type = "sine";
+    oscillator.frequency.setValueAtTime(note.frequency, context.currentTime + note.start);
+    gain.gain.setValueAtTime(0.0001, context.currentTime + note.start);
+    gain.gain.exponentialRampToValueAtTime(0.16, context.currentTime + note.start + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + note.start + note.duration);
+    oscillator.connect(gain);
+    gain.connect(context.destination);
+    oscillator.start(context.currentTime + note.start);
+    oscillator.stop(context.currentTime + note.start + note.duration + 0.02);
+  });
+
+  window.setTimeout(() => context.close(), 600);
+}
+
 function dateOnly(date) {
   const nextDate = new Date(date);
   nextDate.setHours(0, 0, 0, 0);
@@ -516,6 +552,75 @@ function AkademikTakvim() {
     () => buildVisibleMonthDates(calendarEvents, academicYearStart),
     [academicYearStart, calendarEvents],
   );
+  const [audioAlertsEnabled, setAudioAlertsEnabled] = useState(() => {
+    try {
+      return localStorage.getItem(audioStorageKey) === "true";
+    } catch {
+      return false;
+    }
+  });
+  const [audioAlertMessage, setAudioAlertMessage] = useState("");
+  const audibleAlerts = useMemo(
+    () =>
+      calendarEvents
+        .map((item) => ({ ...item, alert: getCalendarAlert(item) }))
+        .filter((item) => ["kritik", "dikkat", "devam"].includes(item.alert.level))
+        .sort((a, b) => {
+          const order = { kritik: 0, devam: 1, dikkat: 2 };
+          return order[a.alert.level] - order[b.alert.level] || new Date(a.baslangic) - new Date(b.baslangic);
+        }),
+    [calendarEvents],
+  );
+  const audioAlertSignature = audibleAlerts
+    .slice(0, 5)
+    .map((item) => `${item.id}-${item.alert.level}-${item.baslangic}`)
+    .join("|");
+
+  useEffect(() => {
+    if (!audioAlertsEnabled || !audioAlertSignature) {
+      return;
+    }
+
+    const todayKey = new Date().toISOString().slice(0, 10);
+    const noticeKey = `${todayKey}:${audioAlertSignature}`;
+    const lastNoticeKey = localStorage.getItem(audioNoticeStorageKey);
+    if (lastNoticeKey === noticeKey) {
+      return;
+    }
+
+    playAcademicAlertTone()
+      .then(() => {
+        localStorage.setItem(audioNoticeStorageKey, noticeKey);
+        setAudioAlertMessage(`${audibleAlerts.length} yaklaşan/aktif akademik olay için sesli uyarı verildi.`);
+      })
+      .catch(() => {
+        setAudioAlertMessage("Ses çalmak için tarayıcı kullanıcı etkileşimi isteyebilir. Lütfen düğmeye tekrar basın.");
+      });
+  }, [audibleAlerts.length, audioAlertsEnabled, audioAlertSignature]);
+
+  const toggleAudioAlerts = async () => {
+    const nextValue = !audioAlertsEnabled;
+    setAudioAlertsEnabled(nextValue);
+    localStorage.setItem(audioStorageKey, String(nextValue));
+
+    if (!nextValue) {
+      setAudioAlertMessage("Sesli uyarılar kapatıldı.");
+      return;
+    }
+
+    if (audibleAlerts.length === 0) {
+      setAudioAlertMessage("Sesli uyarılar açıldı. Şu an kritik veya yakın tarihli akademik olay yok.");
+      return;
+    }
+
+    try {
+      await playAcademicAlertTone();
+      localStorage.removeItem(audioNoticeStorageKey);
+      setAudioAlertMessage(`${audibleAlerts.length} yaklaşan/aktif akademik olay için sesli uyarılar açıldı.`);
+    } catch {
+      setAudioAlertMessage("Ses başlatılamadı. Tarayıcı izin vermediyse düğmeye tekrar basın.");
+    }
+  };
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -928,6 +1033,52 @@ function AkademikTakvim() {
                 </button>
               ))}
             </div>
+          </div>
+        </div>
+      </div>
+
+      <div className={`rounded-[1.35rem] border px-5 py-4 shadow-sm ${
+        audibleAlerts.length > 0
+          ? "border-[#F58220]/35 bg-[#FFF8F1]"
+          : "border-[#D6DEEA] bg-white"
+      }`}>
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex items-start gap-3">
+            <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-lg ${
+              audioAlertsEnabled ? "bg-[#00377B] text-white" : "bg-[#EEF3FA] text-[#00377B]"
+            }`}>
+              <span className="text-[11px] font-extrabold uppercase tracking-wide">Ses</span>
+            </div>
+            <div>
+              <p className="text-sm font-extrabold text-[#1F2D5C]">Sesli akademik takvim uyarıları</p>
+              <p className="mt-1 text-sm text-[#60708B]">
+                {audibleAlerts.length > 0
+                  ? `${audibleAlerts.length} olay dikkat gerektiriyor. Kritik, dikkat veya devam eden olaylarda kısa uyarı sesi verilir.`
+                  : "Kritik veya yakın tarihli akademik olay olduğunda kısa bir uyarı sesi verilebilir."}
+              </p>
+              {audioAlertMessage && (
+                <p className="mt-2 text-xs font-semibold text-[#1F4D2C]">{audioAlertMessage}</p>
+              )}
+            </div>
+          </div>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            {audibleAlerts[0] && (
+              <div className="rounded-2xl border border-white bg-white/80 px-4 py-2 text-sm shadow-sm">
+                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#8A9AB5]">İlk uyarı</p>
+                <p className="mt-0.5 line-clamp-1 font-extrabold text-[#1F2D5C]">{audibleAlerts[0].ad}</p>
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={toggleAudioAlerts}
+              className={`rounded-xl px-4 py-2.5 text-sm font-extrabold shadow-sm transition ${
+                audioAlertsEnabled
+                  ? "border border-[#D6DEEA] bg-white text-[#1F2D5C] hover:border-[#00377B]"
+                  : "bg-[#00377B] text-white hover:bg-[#1F2D5C]"
+              }`}
+            >
+              {audioAlertsEnabled ? "Sesli uyarıları kapat" : "Sesli uyarıları aç"}
+            </button>
           </div>
         </div>
       </div>
