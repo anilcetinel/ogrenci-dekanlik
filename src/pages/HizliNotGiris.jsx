@@ -2,7 +2,6 @@ import { useMemo, useState } from "react";
 import Badge from "../components/Badge";
 import FormModal from "../components/FormModal";
 import SectionCard from "../components/SectionCard";
-import SharedStatus from "../components/SharedStatus";
 import SuccessMessage from "../components/SuccessMessage";
 import useStoredCollection from "../hooks/useStoredCollection";
 import haftalikLogData from "../data/haftalik-log.json";
@@ -51,6 +50,63 @@ const categoryRules = [
     words: ["yapıldı", "tamamlandı", "hazırlandı", "iletildi", "gönderildi", "alındı", "toplandı", "güncellendi"],
   },
 ];
+
+const previewOrder = ["yapilanlar", "yapilacaklar", "bekleyenler", "sorunlar"];
+
+const previewCardStyles = {
+  yapilanlar: {
+    title: "Yapılanlar",
+    dot: "bg-[#1F4D2C]",
+    border: "border-[#BDEFD1]",
+    bg: "bg-[#F0FFF6]",
+    text: "text-[#1F4D2C]",
+  },
+  yapilacaklar: {
+    title: "Yapılacaklar",
+    dot: "bg-[#00377B]",
+    border: "border-[#BFD0E6]",
+    bg: "bg-[#EEF3FA]",
+    text: "text-[#00377B]",
+  },
+  bekleyenler: {
+    title: "Bekleyenler",
+    dot: "bg-[#F58220]",
+    border: "border-[#F7D7B7]",
+    bg: "bg-[#FFF8F1]",
+    text: "text-[#9A4A00]",
+  },
+  sorunlar: {
+    title: "Sorunlar",
+    dot: "bg-[#B42318]",
+    border: "border-[#F2C8C8]",
+    bg: "bg-[#FFF7F7]",
+    text: "text-[#B42318]",
+  },
+};
+
+function QuickNoteSyncPill({ syncStatus, count }) {
+  const isActive = syncStatus === "ortak-veri-aktif";
+  const isError = syncStatus === "ortak-veri-hatasi";
+  const label = isActive
+    ? `Ortak veri aktif · ${count} kayıt`
+    : isError
+      ? "Ortak veri bağlantısı yok"
+      : syncStatus === "ortak-veri-baglaniyor"
+        ? "Ortak veri bağlanıyor"
+        : "Yerel mod";
+
+  return (
+    <span className={`inline-flex items-center rounded-full border px-3 py-1.5 text-xs font-bold ${
+      isActive
+        ? "border-[#BDEFD1] bg-[#F0FFF6] text-[#1F4D2C]"
+        : isError
+          ? "border-red-200 bg-red-50 text-red-700"
+          : "border-[#D6DEEA] bg-white text-[#60708B]"
+    }`}>
+      {label}
+    </span>
+  );
+}
 
 function weekStart(date) {
   return getWeekStart(date);
@@ -377,40 +433,50 @@ function HizliNotGiris() {
   return (
     <div className="space-y-6">
       <SuccessMessage>{successMessage}</SuccessMessage>
-      <SharedStatus syncStatus={notesSyncStatus} count={notes.length} label="Hızlı not ortak veri durumu" />
 
-      <section className="rounded-2xl border border-[#D6DEEA] bg-gradient-to-r from-[#0E2650] to-[#1F2D5C] px-6 py-5 text-white shadow-md">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/45">Bilgi yakalama alanı</p>
-        <h2 className="mt-1 text-xl font-bold">Hızlı Not Girişi</h2>
-        <p className="mt-1 max-w-3xl text-sm leading-6 text-white/65">
-          Mail, WhatsApp, toplantı notu veya telefon görüşmesi gibi dağınık bilgileri buraya yapıştırın.
-          Sistem notu haftalık faaliyet panosuna yapılan, yapılacak, bekleyen ve risk başlıklarıyla işler.
-        </p>
-        <p className="mt-3 rounded-xl border border-white/15 bg-white/10 px-3 py-2 text-xs leading-5 text-white/75">
-          Kaydedilen not, seçtiğiniz tarihin haftalık faaliyet kaydına otomatik bağlanır. Örneğin 7 Haziran tarihli not,
-          1-7 Haziran haftasının panosunda görünür.
-        </p>
+      <section className="overflow-hidden rounded-[1.6rem] border border-[#D6DEEA] bg-white shadow-sm">
+        <div className="h-2 bg-gradient-to-r from-[#00377B] via-[#1F2D5C] to-[#1F4D2C]" />
+        <div className="flex flex-col gap-5 px-6 py-5 lg:flex-row lg:items-center lg:justify-between">
+          <div className="max-w-3xl">
+            <p className="text-xs font-bold uppercase tracking-[0.26em] text-[#8A9AB5]">Bilgi Yakalama Alanı</p>
+            <h2 className="mt-1 text-2xl font-extrabold text-[#1F2D5C]">Hızlı Not Girişi</h2>
+            <p className="mt-2 text-sm leading-6 text-[#60708B]">
+              Mail, toplantı notu, telefon görüşmesi veya dosyadan gelen bilgiyi tek alanda toplayın.
+              Kaydedilen not seçilen tarihin haftalık faaliyet panosuna otomatik işlenir.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2 lg:justify-end">
+            <QuickNoteSyncPill syncStatus={notesSyncStatus} count={notes.length} />
+            <span className="inline-flex items-center rounded-full border border-[#D6DEEA] bg-[#F8FAFD] px-3 py-1.5 text-xs font-bold text-[#1F2D5C]">
+              Haftalık panoya bağlanır
+            </span>
+          </div>
+        </div>
       </section>
 
       {editable ? (
-      <div className="grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">
-        <SectionCard title="Ham Not">
-          <form onSubmit={saveNote} className="space-y-4">
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1.15fr)_minmax(360px,0.85fr)]">
+        <section className="overflow-hidden rounded-[1.35rem] border border-[#D6DEEA] bg-white shadow-sm">
+          <div className="border-b border-[#E5E7EB] px-5 py-4">
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#8A9AB5]">Not Kaydı</p>
+            <h3 className="mt-1 text-lg font-extrabold text-[#1F2D5C]">Ham Not</h3>
+          </div>
+          <form onSubmit={saveNote} className="space-y-5 p-5">
             {formError && (
               <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                 {formError}
               </div>
             )}
             <div className="grid gap-4 md:grid-cols-3">
-              <label className="space-y-2 text-sm text-slate-600">
+              <label className="space-y-2 text-sm font-semibold text-[#60708B]">
                 <span>Tarih</span>
                 <input type="date" name="tarih" value={formData.tarih} onChange={handleChange}
-                  className="w-full rounded-xl border border-[#D6DEEA] px-4 py-3 outline-none" />
+                  className="w-full rounded-xl border border-[#D6DEEA] bg-white px-4 py-3 font-bold text-[#1F2D5C] outline-none transition focus:border-[#00377B] focus:ring-4 focus:ring-[#00377B]/10" />
               </label>
-              <label className="space-y-2 text-sm text-slate-600">
+              <label className="space-y-2 text-sm font-semibold text-[#60708B]">
                 <span>Kaynak</span>
                 <select name="kaynak" value={formData.kaynak} onChange={handleChange}
-                  className="w-full rounded-xl border border-[#D6DEEA] px-4 py-3 outline-none">
+                  className="w-full rounded-xl border border-[#D6DEEA] bg-white px-4 py-3 font-bold text-[#1F2D5C] outline-none transition focus:border-[#00377B] focus:ring-4 focus:ring-[#00377B]/10">
                   <option>Serbest not</option>
                   <option>Mail</option>
                   <option>Toplantı</option>
@@ -419,27 +485,27 @@ function HizliNotGiris() {
                   <option>Resmi yazı</option>
                 </select>
               </label>
-              <label className="space-y-2 text-sm text-slate-600">
+              <label className="space-y-2 text-sm font-semibold text-[#60708B]">
                 <span>Hazırlayan</span>
                 <input name="hazirlayan" value={formData.hazirlayan} onChange={handleChange}
-                  className="w-full rounded-xl border border-[#D6DEEA] px-4 py-3 outline-none" />
+                  className="w-full rounded-xl border border-[#D6DEEA] bg-white px-4 py-3 font-bold text-[#1F2D5C] outline-none transition focus:border-[#00377B] focus:ring-4 focus:ring-[#00377B]/10" />
               </label>
             </div>
-            <label className="block space-y-2 text-sm text-slate-600">
+            <label className="block space-y-2 text-sm font-semibold text-[#60708B]">
               <span>Not içeriği</span>
               <textarea name="icerik" rows="9" value={formData.icerik} onChange={handleChange}
                 placeholder="Örn. Final programı için salon talepleri alındı. Mühendislikte kapasite sorunu var. Gözetmen listesi cuma gününe kadar bekleniyor."
-                className="w-full rounded-xl border border-[#D6DEEA] px-4 py-3 leading-6 outline-none" />
+                className="w-full rounded-xl border border-[#D6DEEA] bg-[#FBFCFE] px-4 py-3 leading-6 text-[#1F2D5C] outline-none transition placeholder:text-[#A8B3C6] focus:border-[#00377B] focus:bg-white focus:ring-4 focus:ring-[#00377B]/10" />
             </label>
-            <div className="rounded-2xl border border-dashed border-[#D6DEEA] bg-[#F8FAFD] p-4">
+            <div className="rounded-2xl border border-dashed border-[#BFD0E6] bg-[#F8FAFD] p-4">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <p className="text-sm font-semibold text-[#1F2D5C]">Dosyadan bilgi çek</p>
+                  <p className="text-sm font-extrabold text-[#1F2D5C]">Dosyadan bilgi çek</p>
                   <p className="mt-1 text-xs leading-5 text-slate-500">
-                    Excel, CSV, TXT, PDF ve DOCX içerikleri temizlenir; gereksiz tekrarlar ayıklanıp not taslağına dönüştürülür.
+                    Excel, CSV, TXT, PDF ve DOCX içerikleri okunur. Uygun gördüğünüz kısmı not alanına aktarabilirsiniz.
                   </p>
                 </div>
-                <label className="inline-flex cursor-pointer rounded-xl bg-[#00377B] px-4 py-3 text-sm font-semibold text-white">
+                <label className="inline-flex cursor-pointer rounded-xl bg-[#00377B] px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-[#1F2D5C]">
                   Dosya Seç
                   <input
                     type="file"
@@ -511,52 +577,60 @@ function HizliNotGiris() {
             </div>
             <div className="flex flex-wrap justify-end gap-3">
               <button type="button" onClick={() => setModalOpen(true)}
-                className="rounded-xl border border-[#D6DEEA] px-4 py-3 text-sm font-medium text-[#1F2D5C]">
+                className="rounded-xl border border-[#D6DEEA] bg-white px-4 py-3 text-sm font-bold text-[#1F2D5C] shadow-sm hover:border-[#00377B]">
                 Operasyon Seç
               </button>
-              <button type="submit" className="rounded-xl bg-[#00377B] px-5 py-3 text-sm font-semibold text-white">
+              <button type="submit" className="rounded-xl bg-[#00377B] px-5 py-3 text-sm font-bold text-white shadow-sm hover:bg-[#1F2D5C]">
                 Haftalık Kayda İşle
               </button>
             </div>
           </form>
-        </SectionCard>
+        </section>
 
-        <SectionCard title="Otomatik Önizleme">
-          <div className="space-y-4">
-            <div className="rounded-xl border border-[#D6DEEA] bg-[#F8FAFD] px-4 py-3">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">İlgili operasyonlar</p>
+        <section className="overflow-hidden rounded-[1.35rem] border border-[#D6DEEA] bg-white shadow-sm">
+          <div className="border-b border-[#E5E7EB] px-5 py-4">
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#8A9AB5]">Otomatik Ayrıştırma</p>
+            <h3 className="mt-1 text-lg font-extrabold text-[#1F2D5C]">Önizleme</h3>
+          </div>
+          <div className="space-y-4 p-5">
+            <div className="rounded-2xl border border-[#D6DEEA] bg-[#F8FAFD] px-4 py-3">
+              <p className="text-xs font-bold uppercase tracking-wide text-[#8A9AB5]">İlgili operasyonlar</p>
               <div className="mt-2 flex flex-wrap gap-2">
                 {selectedOperations.length > 0 ? (
                   selectedOperations.map((operation) => <Badge key={operation.id}>{operation.ad}</Badge>)
                 ) : (
-                  <span className="text-sm text-slate-400">Operasyon bağlantısı bulunamadı. Gerekirse manuel seçin.</span>
+                  <span className="text-sm text-[#8A9AB5]">Operasyon bağlantısı bulunamadı. Gerekirse manuel seçin.</span>
                 )}
               </div>
             </div>
-            {categoryRules.map((rule) => {
-              const items = preview[rule.key] || [];
+            {previewOrder.map((key) => {
+              const style = previewCardStyles[key];
+              const items = preview[key] || [];
               return (
-                <div key={rule.key} className="rounded-xl border border-[#E5E7EB] bg-white p-4">
+                <div key={key} className={`rounded-2xl border ${style.border} ${style.bg} p-4`}>
                   <div className="mb-2 flex items-center justify-between">
-                    <Badge tone={rule.tone}>{rule.label}</Badge>
-                    <span className="text-xs font-semibold text-slate-400">{items.length}</span>
+                    <div className="flex items-center gap-2">
+                      <span className={`h-2.5 w-2.5 rounded-full ${style.dot}`} />
+                      <p className={`text-sm font-extrabold ${style.text}`}>{style.title}</p>
+                    </div>
+                    <span className="rounded-full bg-white/80 px-2 py-0.5 text-xs font-extrabold text-[#60708B]">{items.length}</span>
                   </div>
                   {items.length > 0 ? (
                     <ul className="space-y-2">
                       {items.map((item) => (
-                        <li key={item} className="rounded-lg bg-slate-50 px-3 py-2 text-sm leading-6 text-slate-700">
+                        <li key={item} className="rounded-xl border border-white/80 bg-white px-3 py-2 text-sm leading-6 text-[#42526E] shadow-sm">
                           {item}
                         </li>
                       ))}
                     </ul>
                   ) : (
-                    <p className="text-sm text-slate-400">Bu başlık için madde çıkarılmadı.</p>
+                    <p className="text-sm text-[#8A9AB5]">Bu başlık için madde çıkarılmadı.</p>
                   )}
                 </div>
               );
             })}
           </div>
-        </SectionCard>
+        </section>
       </div>
       ) : (
         <SectionCard title="Görüntüleme Modu">
@@ -566,30 +640,38 @@ function HizliNotGiris() {
         </SectionCard>
       )}
 
-      <SectionCard title="Son Hızlı Notlar">
+      <section className="overflow-hidden rounded-[1.35rem] border border-[#D6DEEA] bg-white shadow-sm">
+        <div className="flex flex-col gap-1 border-b border-[#E5E7EB] px-5 py-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#8A9AB5]">Kayıt Geçmişi</p>
+            <h3 className="mt-1 text-lg font-extrabold text-[#1F2D5C]">Son Hızlı Notlar</h3>
+          </div>
+          <span className="text-sm font-semibold text-[#60708B]">{notes.length} kayıt</span>
+        </div>
+        <div className="p-5">
         {notes.length > 0 ? (
-          <div className="space-y-3">
+          <div className="grid gap-3 lg:grid-cols-2">
             {notes.slice().reverse().slice(0, 5).map((note) => (
-              <article key={note.id} className="rounded-xl border border-[#E5E7EB] bg-white px-4 py-3">
-                <div className="mb-2 flex flex-wrap items-center gap-2 text-xs text-slate-400">
-                  <Badge tone="bekliyor">{note.kaynak}</Badge>
-                  <span>{dateFmt.format(new Date(note.tarih))}</span>
-                  <span>{note.hazirlayan}</span>
+              <article key={note.id} className="rounded-2xl border border-[#E5EAF2] bg-[#F8FAFD] px-4 py-3">
+                <div className="mb-2 flex flex-wrap items-center gap-2 text-xs">
+                  <span className="rounded-full bg-white px-2.5 py-1 font-bold text-[#00377B]">{note.kaynak}</span>
+                  <span className="font-semibold text-[#60708B]">{dateFmt.format(new Date(note.tarih))}</span>
                   {editable && (
                     <button
                       type="button"
                       onClick={() => handleDeleteNote(note)}
-                      className="ml-auto rounded-lg border border-red-200 bg-red-50 px-2 py-1 text-[11px] font-semibold text-red-700"
+                      className="ml-auto rounded-lg border border-red-200 bg-white px-2.5 py-1 text-[11px] font-bold text-red-700 hover:bg-red-50"
                     >
                       Sil
                     </button>
                   )}
                 </div>
-                <p className="line-clamp-2 text-sm leading-6 text-slate-600">{note.icerik}</p>
+                <p className="line-clamp-3 text-sm leading-6 text-[#42526E]">{note.icerik}</p>
+                <p className="mt-2 text-xs font-semibold text-[#8A9AB5]">{note.hazirlayan}</p>
                 {note.dosyalar?.length > 0 && (
                   <div className="mt-2 flex flex-wrap gap-2">
                     {note.dosyalar.map((file) => (
-                      <span key={file.id} className="rounded-full bg-[#EEF3FA] px-2 py-1 text-[11px] font-semibold text-[#00377B]">
+                      <span key={file.id} className="rounded-full border border-[#BFD0E6] bg-white px-2 py-1 text-[11px] font-bold text-[#00377B]">
                         {file.ad}
                       </span>
                     ))}
@@ -603,7 +685,8 @@ function HizliNotGiris() {
             Henüz hızlı not girilmedi.
           </div>
         )}
-      </SectionCard>
+        </div>
+      </section>
 
       {editable && modalOpen && (
         <FormModal
