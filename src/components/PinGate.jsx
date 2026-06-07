@@ -14,12 +14,18 @@ function PinGate({ children }) {
   const [error, setError] = useState(false);
   const [shake, setShake] = useState(false);
   const { adminPin, viewerPin } = getAccessPins();
+  const accessConfigured = Boolean(adminPin || viewerPin);
 
   if (authenticated) return children;
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (pin === adminPin) {
+    if (!accessConfigured) {
+      setError(true);
+      return;
+    }
+
+    if (adminPin && pin === adminPin) {
       setAuthenticatedRole(AUTH_ROLES.ADMIN);
       setAuthenticated(true);
     } else if (viewerPin && pin === viewerPin) {
@@ -69,7 +75,7 @@ function PinGate({ children }) {
           />
           {error && (
             <p className="mt-2 text-center text-xs font-semibold text-red-400">
-              Yanlış kod. Tekrar deneyin.
+              {accessConfigured ? "Yanlış kod. Tekrar deneyin." : "Canlı yayın için erişim kodu tanımlı değil."}
             </p>
           )}
           <p className="mt-3 text-center text-xs leading-5 text-white/35">

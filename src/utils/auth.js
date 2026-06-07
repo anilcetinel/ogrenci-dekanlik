@@ -7,7 +7,7 @@ export const AUTH_ROLES = {
 };
 
 export function getAccessPins() {
-  const legacyPin = import.meta.env.VITE_APP_PIN || "sau2026";
+  const legacyPin = import.meta.env.VITE_APP_PIN || (import.meta.env.DEV ? "sau2026" : "");
 
   return {
     adminPin: import.meta.env.VITE_ADMIN_PIN || legacyPin,

@@ -3,6 +3,7 @@ import {
   getSharedStorageDebugInfo,
   getSharedStorageInfo,
   isSharedStorageEnabled,
+  clearSharedCollection,
   testSharedStorageConnection,
   upsertSharedRecords,
 } from "../utils/sharedStorage";
@@ -134,11 +135,23 @@ function Ayarlar() {
     e.target.value = "";
   };
 
-  const handleClearAll = () => {
+  const handleClearAll = async () => {
     if (!window.confirm("TÜM veriler silinecek (takvim, haftalık kayıtlar, notlar). Bu işlem geri alınamaz. Devam?")) return;
-    COLLECTIONS.forEach(({ key }) => localStorage.removeItem(key));
-    refreshCounts();
-    setImportStatus("success:Tüm veriler silindi.");
+    try {
+      if (isSharedStorageEnabled()) {
+        await Promise.all(COLLECTIONS.map(({ key }) => clearSharedCollection(key)));
+      }
+      COLLECTIONS.forEach(({ key }) => localStorage.removeItem(key));
+      refreshCounts();
+      setImportStatus(
+        isSharedStorageEnabled()
+          ? "success:Tüm yerel ve ortak kayıtlar silindi."
+          : "success:Tüm yerel kayıtlar silindi.",
+      );
+    } catch (error) {
+      console.error(error);
+      setImportStatus("error:Ortak veri silinemedi. Supabase izinlerini kontrol edin.");
+    }
   };
 
   const statusType = importStatus.startsWith("success:") ? "success" : importStatus.startsWith("error:") ? "error" : null;

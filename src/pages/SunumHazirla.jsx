@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import useStoredCollection from "../hooks/useStoredCollection";
 import haftalikLogData from "../data/haftalik-log.json";
 import takvimData from "../data/akademik-takvim.json";
@@ -398,6 +398,12 @@ function SunumHazirla() {
   const [generating, setGenerating] = useState(false);
   const [done, setDone] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+
+  useEffect(() => {
+    if (selectedLogIds.length === 0 && logs.length > 0) {
+      setSelectedLogIds(logs.slice(0, 3).map((log) => log.id));
+    }
+  }, [logs, selectedLogIds.length]);
 
   const calendarAlerts = useMemo(() => {
     const today = new Date();

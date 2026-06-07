@@ -642,17 +642,6 @@ function AkademikTakvim() {
         })),
       );
 
-      console.log("Akademik takvim Excel import", {
-        sheets: readableSheets.map((sheet) => ({
-          sheetName: sheet.sheetName,
-          headerRowIndex: sheet.headerInfo.headerRowIndex,
-          matchedColumns: sheet.headerInfo.matchedColumns,
-          parsedCount: sheet.parsedRows.length,
-          skippedCount: sheet.skippedRows.length,
-        })),
-        skippedRows,
-      });
-
       setImportReport({
         fileName: file.name,
         sheetName: readableSheets.map((sheet) => sheet.sheetName).join(", "),
