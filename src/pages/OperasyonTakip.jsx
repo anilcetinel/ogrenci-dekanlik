@@ -2,19 +2,9 @@ import { useMemo, useState } from "react";
 import SharedStatus from "../components/SharedStatus";
 import useStoredCollection from "../hooks/useStoredCollection";
 import haftalikLogData from "../data/haftalik-log.json";
+import { buildVisibleMonthKeys, getMonthKey, getMonthLabel } from "../utils/months";
 
-const monthFmt = new Intl.DateTimeFormat("tr-TR", { month: "long", year: "numeric" });
 const shortFmt  = new Intl.DateTimeFormat("tr-TR", { day: "2-digit", month: "short" });
-
-function getMonthKey(date) {
-  const d = new Date(date);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-}
-
-function getMonthLabel(key) {
-  const [y, m] = key.split("-");
-  return monthFmt.format(new Date(Number(y), Number(m) - 1, 1));
-}
 
 const TYPES = [
   { key: "yapilanlar",   label: "Yapılan",   color: "#1F4D2C", bg: "bg-[#EEF7F0]", text: "text-[#1F4D2C]", dot: "bg-[#1F4D2C]", icon: "✓" },
@@ -38,13 +28,11 @@ function YapilanIslerTakibi() {
   });
 
   const [activeType,    setActiveType]    = useState("yapilanlar");
-  const [selectedMonth, setSelectedMonth] = useState("Tümü");
+  const [selectedMonth, setSelectedMonth] = useState(() => getMonthKey(new Date()));
   const [search,        setSearch]        = useState("");
 
-  // Mevcut ay anahtarları (yeniden eskiye)
   const monthKeys = useMemo(() => {
-    const keys = [...new Set(logs.map((l) => getMonthKey(l.haftaBaslangic)))].sort().reverse();
-    return keys;
+    return buildVisibleMonthKeys(logs, new Date());
   }, [logs]);
 
   // Aylık dağılım (her zaman TÜM loglar — grafik için)
@@ -117,7 +105,24 @@ function YapilanIslerTakibi() {
       </div>
 
       {/* Ay seçici */}
-      <div className="flex flex-wrap gap-2">
+      <div className="rounded-2xl border border-[#D6DEEA] bg-white p-3 shadow-sm">
+        <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-wide text-slate-400">Ay seçimi</p>
+            <p className="text-xs text-slate-500">Varsayılan olarak içinde bulunduğumuz ay açılır; tüm zamanlar veya başka ay seçilebilir.</p>
+          </div>
+          <select
+            value={selectedMonth}
+            onChange={(event) => setSelectedMonth(event.target.value)}
+            className="rounded-xl border border-[#D6DEEA] bg-[#F8FAFD] px-3 py-2 text-sm font-semibold text-[#1F2D5C] outline-none focus:border-[#00377B]"
+          >
+            <option value="Tümü">Tüm Zamanlar</option>
+            {monthKeys.map((key) => (
+              <option key={key} value={key}>{getMonthLabel(key)}</option>
+            ))}
+          </select>
+        </div>
+        <div className="flex flex-wrap gap-2">
         {["Tümü", ...monthKeys].map((key) => (
           <button
             key={key}
@@ -132,6 +137,7 @@ function YapilanIslerTakibi() {
             {key === "Tümü" ? "Tüm Zamanlar" : getMonthLabel(key)}
           </button>
         ))}
+        </div>
       </div>
 
       {/* Sayaç kartları */}

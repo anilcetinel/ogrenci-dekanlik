@@ -276,7 +276,7 @@ function HaftalikFaaliyetler() {
             <div className="mb-3 rounded-xl border border-[#D6DEEA] bg-[#F8FAFD] px-3 py-2">
               <p className="text-xs font-semibold text-[#1F2D5C]">Hafta seçmek için takvimde bir güne tıklayın</p>
               <p className="mt-0.5 text-[11px] leading-4 text-slate-500">
-                Turuncu işaretli haftalarda faaliyet kaydı var; seçtiğiniz haftanın panosu sağda açılır.
+                Turuncu işaretli haftalarda faaliyet kaydı var. Hızlı Not Girişi’nden kaydedilen notlar da not tarihinin haftasına otomatik düşer.
               </p>
             </div>
 
@@ -507,6 +507,7 @@ function HaftalikFaaliyetler() {
                 </p>
                 <p className="mx-auto mt-2 max-w-sm text-xs leading-5 text-slate-500">
                   Kayıtlı haftaları görmek için soldaki turuncu işaretli günlere veya “Bu aydaki kayıtlı haftalar” listesine tıklayın.
+                  Hızlı notlar, not tarihinin içinde bulunduğu haftada görünür.
                 </p>
                 {editable && (
                   <button

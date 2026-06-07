@@ -10,10 +10,10 @@ import haftalikLogData from "../data/haftalik-log.json";
 import operasyonData from "../data/operasyon-kutuphanesi.json";
 import { canEditData } from "../utils/auth";
 import { getCalendarAlert } from "../utils/calendar";
+import { buildVisibleMonthKeys, getMonthKey, getMonthLabel } from "../utils/months";
 
 const dateFormatter = new Intl.DateTimeFormat("tr-TR", { day: "2-digit", month: "long", year: "numeric" });
 const shortDateFormatter = new Intl.DateTimeFormat("tr-TR", { day: "2-digit", month: "short" });
-const monthFmt = new Intl.DateTimeFormat("tr-TR", { month: "long", year: "numeric" });
 const weekdayFormatter = new Intl.DateTimeFormat("tr-TR", { weekday: "long" });
 
 function weekStart(date) {
@@ -31,11 +31,6 @@ function getWeekRange(date) {
   const start = new Date(d);
   d.setDate(d.getDate() + 4);
   return `${shortDateFormatter.format(start)} – ${shortDateFormatter.format(d)}`;
-}
-
-function getMonthKey(date) {
-  const d = new Date(date);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
 const TYPES = [
@@ -62,19 +57,8 @@ function Dashboard() {
 
   const today = new Date();
 
-  // 2026-2027 akademik yılının tüm ayları + geçmiş kayıtlı aylar
   const monthKeys = useMemo(() => {
-    // Tüm akademik yıl ayları: Eylül 2026 → Ağustos 2027
-    const academicMonths = Array.from({ length: 12 }, (_, i) => {
-      const month = (8 + i) % 12;      // 8=Eylül ... 7=Ağustos
-      const year  = i < 4 ? 2026 : 2027;
-      return `${year}-${String(month + 1).padStart(2, "0")}`;
-    });
-    // Geçmiş loglardan gelen aylar (Eylül 2026 öncesi)
-    const logMonths = logs.map((l) => getMonthKey(l.haftaBaslangic));
-    // Birleştir, tekrarları kaldır, yeniden eskiye sırala
-    const all = [...new Set([...logMonths, ...academicMonths])];
-    return all.sort().reverse();
+    return buildVisibleMonthKeys(logs, today);
   }, [logs]);
 
   const [selectedMonth, setSelectedMonth] = useState(() => getMonthKey(today));
@@ -115,10 +99,16 @@ function Dashboard() {
     return logs.find((l) => weekStart(new Date(l.haftaBaslangic)).getTime() === ws.getTime()) || null;
   }, [logs]);
 
-  const getMonthLabel = (key) => {
-    const [y, m] = key.split("-");
-    return monthFmt.format(new Date(Number(y), Number(m) - 1, 1));
-  };
+  const groupedMonthKeys = useMemo(
+    () =>
+      monthKeys.reduce((groups, key) => {
+        const year = key.slice(0, 4);
+        groups[year] = groups[year] || [];
+        groups[year].push(key);
+        return groups;
+      }, {}),
+    [monthKeys],
+  );
 
   return (
     <div className="space-y-5">
@@ -199,37 +189,36 @@ function Dashboard() {
         </div>
       </section>
 
-      {/* Ay seçici — 2026 ve 2027 grupları */}
+      {/* Ay seçici */}
       <div className="space-y-2">
-        {/* 2026 öncesi geçmiş kayıtlar (varsa) */}
-        {monthKeys.filter((k) => k < "2026-09").length > 0 && (
-          <MonthGroup
-            label="Geçmiş"
-            keys={monthKeys.filter((k) => k < "2026-09").sort()}
-            selected={selectedMonth}
-            logs={logs}
-            onSelect={setSelectedMonth}
-            getLabel={getMonthLabel}
-          />
-        )}
-        {/* 2026: Eylül → Aralık */}
-        <MonthGroup
-          label="2026"
-          keys={["2026-09","2026-10","2026-11","2026-12"]}
-          selected={selectedMonth}
-          logs={logs}
-          onSelect={setSelectedMonth}
-          getLabel={getMonthLabel}
-        />
-        {/* 2027: Ocak → Ağustos */}
-        <MonthGroup
-          label="2027"
-          keys={["2027-01","2027-02","2027-03","2027-04","2027-05","2027-06","2027-07","2027-08"]}
-          selected={selectedMonth}
-          logs={logs}
-          onSelect={setSelectedMonth}
-          getLabel={getMonthLabel}
-        />
+        <div className="flex flex-col gap-2 rounded-2xl border border-[#D6DEEA] bg-white p-3 shadow-sm">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-wide text-slate-400">Ay seçimi</p>
+              <p className="text-xs text-slate-500">Sayfa otomatik olarak içinde olduğumuz ayı açar; istediğiniz aya geçebilirsiniz.</p>
+            </div>
+            <select
+              value={selectedMonth}
+              onChange={(event) => setSelectedMonth(event.target.value)}
+              className="rounded-xl border border-[#D6DEEA] bg-[#F8FAFD] px-3 py-2 text-sm font-semibold text-[#1F2D5C] outline-none focus:border-[#00377B]"
+            >
+              {monthKeys.map((key) => (
+                <option key={key} value={key}>{getMonthLabel(key)}</option>
+              ))}
+            </select>
+          </div>
+          {Object.entries(groupedMonthKeys).map(([year, keys]) => (
+            <MonthGroup
+              key={year}
+              label={year}
+              keys={keys}
+              selected={selectedMonth}
+              logs={logs}
+              onSelect={setSelectedMonth}
+              getLabel={getMonthLabel}
+            />
+          ))}
+        </div>
       </div>
 
       {/* Stat kartları */}
