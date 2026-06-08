@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import Badge from "../components/Badge";
 import SectionCard from "../components/SectionCard";
@@ -128,6 +128,10 @@ function Dashboard() {
 
   const [selectedMonth, setSelectedMonth] = useState(() => getMonthKey(today));
 
+  useEffect(() => {
+    setSelectedMonth(getMonthKey(new Date()));
+  }, []);
+
   // Seçili aya ait loglar
   const monthLogs = useMemo(
     () => logs.filter((l) => getLogMonthKey(l) === selectedMonth),
@@ -251,24 +255,26 @@ function Dashboard() {
       {/* Üst bilgi bandı */}
       <section className="overflow-hidden rounded-3xl border border-[#D6DEEA] bg-white shadow-sm">
         <div className="h-2 bg-gradient-to-r from-[#00377B] via-[#1F2D5C] to-[#1F4D2C]" />
-        <div className="grid gap-5 p-5 lg:grid-cols-[1fr_auto] lg:items-start lg:p-6">
-          <div>
+        <div className="grid gap-4 p-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center lg:p-5">
+          <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+            <div>
             <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-slate-400">
               Öğrenci Destek Koordinatörlüğü
             </p>
-            <h1 className="mt-2 text-2xl font-black tracking-tight text-[#1F2D5C]">
+            <h1 className="mt-1 text-2xl font-black tracking-tight text-[#1F2D5C]">
               {weekdayFormatter.format(today)}, {dateFormatter.format(today)}
             </h1>
             <p className="mt-1 text-sm font-medium text-slate-500">2026-2027 Akademik Yılı · Yönetim özeti</p>
-            <div className="mt-4 flex flex-wrap gap-2">
+            </div>
+            <div className="flex flex-wrap gap-2">
               <MiniMetric label="Yapıldı" value={thisWeekCounts.yapilanlar} color="blue" />
               <MiniMetric label="Planlı" value={thisWeekCounts.yapilacaklar} color="blue" />
               <MiniMetric label="Bekliyor" value={thisWeekCounts.bekleyenler} color="slate" />
             </div>
           </div>
 
-          <div className="space-y-2 lg:min-w-[330px]">
-            <div className="flex items-center justify-between rounded-2xl border border-[#D6DEEA] bg-[#F8FAFD] px-4 py-3">
+          <div className="grid gap-2 sm:grid-cols-3 lg:min-w-[520px]">
+            <div className="flex items-center justify-between rounded-2xl border border-[#D6DEEA] bg-[#F8FAFD] px-3 py-2.5">
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Bu Hafta</p>
                 <p className="mt-1 text-base font-black text-[#00377B]">{getWeekRange(today)}</p>
@@ -280,14 +286,12 @@ function Dashboard() {
                 {thisWeekLog ? "Haftayı Aç" : editable ? "+ Kayıt" : "Görüntüle"}
               </Link>
             </div>
-            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
-              <StatusPill syncStatus={dashboardSyncStatus} count={takvimRecords.length + operasyonRecords.length + logs.length} />
-              <div className={`rounded-2xl border px-4 py-3 ${urgentCount > 0 ? "border-red-200 bg-red-50" : "border-[#BFD0E6] bg-[#EEF3FA]"}`}>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Takvim Uyarısı</p>
-                <p className={`mt-1 text-sm font-black ${urgentCount > 0 ? "text-red-700" : "text-[#00377B]"}`}>
-                  {urgentCount > 0 ? `${urgentCount} kritik konu` : "Kritik uyarı yok"}
-                </p>
-              </div>
+            <StatusPill syncStatus={dashboardSyncStatus} count={takvimRecords.length + operasyonRecords.length + logs.length} compact />
+            <div className={`rounded-2xl border px-3 py-2.5 ${urgentCount > 0 ? "border-red-200 bg-red-50" : "border-[#BFD0E6] bg-[#EEF3FA]"}`}>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Takvim Uyarısı</p>
+              <p className={`mt-1 text-sm font-black ${urgentCount > 0 ? "text-red-700" : "text-[#00377B]"}`}>
+                {urgentCount > 0 ? `${urgentCount} kritik konu` : "Kritik uyarı yok"}
+              </p>
             </div>
           </div>
         </div>
@@ -641,7 +645,7 @@ function MiniMetric({ label, value, color }) {
   );
 }
 
-function StatusPill({ syncStatus, count }) {
+function StatusPill({ syncStatus, count, compact = false }) {
   const meta = {
     "ortak-veri-aktif": {
       label: "Ortak veri aktif",
@@ -667,10 +671,11 @@ function StatusPill({ syncStatus, count }) {
   const current = meta[syncStatus] || meta.yerel;
 
   return (
-    <div className={`rounded-2xl border px-4 py-3 ${current.className}`}>
+    <div className={`rounded-2xl border px-3 ${compact ? "py-2.5" : "py-3"} ${current.className}`}>
       <p className="text-[10px] font-bold uppercase tracking-wider opacity-70">Veri Durumu</p>
       <p className="mt-1 text-sm font-black">{current.label}</p>
-      <p className="mt-0.5 text-[11px] opacity-75">{current.detail}</p>
+      {!compact && <p className="mt-0.5 text-[11px] opacity-75">{current.detail}</p>}
+      {compact && <p className="mt-0.5 truncate text-[10px] opacity-75">{current.detail}</p>}
     </div>
   );
 }
