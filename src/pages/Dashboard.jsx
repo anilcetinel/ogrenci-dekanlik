@@ -72,14 +72,18 @@ function Dashboard() {
   const combined = useMemo(
     () =>
       TYPES.reduce((acc, t) => {
-        acc[t.key] = monthLogs.flatMap((l) =>
-          (l[t.key] || []).map((item, itemIndex) => ({
-            text: item,
-            hafta: l.haftaLabel,
-            itemIndex,
-            logId: l.id,
-          })),
-        );
+        acc[t.key] = monthLogs
+          .slice()
+          .sort((a, b) => new Date(a.haftaBaslangic) - new Date(b.haftaBaslangic))
+          .flatMap((l) =>
+            (l[t.key] || []).map((item, itemIndex) => ({
+              text: item,
+              hafta: l.haftaLabel,
+              tarih: l.haftaBaslangic,
+              itemIndex,
+              logId: l.id,
+            })),
+          );
         return acc;
       }, {}),
     [monthLogs],
@@ -137,6 +141,20 @@ function Dashboard() {
     const nextItems = (log[colKey] || []).filter((_, index) => index !== item.itemIndex);
     mergeRecord(
       { ...log, [colKey]: nextItems },
+      (record) => getWeekKey(getWeeklyLogStart(record)),
+      (_, incomingRecord) => incomingRecord,
+    );
+  };
+
+  const handleMoveDashboardItemToDone = (item, colKey) => {
+    const log = logs.find((record) => String(record.id) === String(item.logId));
+    if (!log || colKey === "yapilanlar") return;
+
+    const nextSourceItems = (log[colKey] || []).filter((_, index) => index !== item.itemIndex);
+    const nextDoneItems = [...new Set([...(log.yapilanlar || []), item.text].filter(Boolean))];
+
+    mergeRecord(
+      { ...log, [colKey]: nextSourceItems, yapilanlar: nextDoneItems },
       (record) => getWeekKey(getWeeklyLogStart(record)),
       (_, incomingRecord) => incomingRecord,
     );
@@ -293,16 +311,29 @@ function Dashboard() {
                         <span className={`font-bold ${t.text}`}>{t.icon}</span>
                         <span className="flex-1">{item.text}</span>
                         {editable && (
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteDashboardItem(item, t.key)}
-                            className="shrink-0 rounded-md border border-red-100 bg-red-50 px-2 py-0.5 text-[10px] font-semibold text-red-600 transition hover:border-red-200 hover:bg-red-100"
-                          >
-                            Sil
-                          </button>
+                          <div className="flex shrink-0 gap-1">
+                            {t.key !== "yapilanlar" && (
+                              <button
+                                type="button"
+                                onClick={() => handleMoveDashboardItemToDone(item, t.key)}
+                                className="rounded-md border border-[#BFD0E6] bg-[#EEF3FA] px-2 py-0.5 text-[10px] font-semibold text-[#00377B] transition hover:border-[#00377B] hover:bg-white"
+                              >
+                                Yapıldı
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteDashboardItem(item, t.key)}
+                              className="rounded-md border border-red-100 bg-red-50 px-2 py-0.5 text-[10px] font-semibold text-red-600 transition hover:border-red-200 hover:bg-red-100"
+                            >
+                              Sil
+                            </button>
+                          </div>
                         )}
                       </div>
-                      <p className="mt-0.5 text-[10px] text-slate-400">{item.hafta}</p>
+                      <p className="mt-0.5 text-[10px] text-slate-400">
+                        {item.tarih ? dateFormatter.format(new Date(item.tarih)) : item.hafta} · {item.hafta}
+                      </p>
                     </li>
                   ))}
                 </ul>

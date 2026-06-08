@@ -23,7 +23,6 @@ const emptyForm = {
   durum: "Planlandı",
   sorumluKisi: "",
   sonTarih: "",
-  riskSeviyesi: "orta",
 };
 
 function OperasyonKutuphane() {
@@ -95,7 +94,6 @@ function OperasyonKutuphane() {
         durum: formData.durum,
         sorumluKisi: formData.sorumluKisi || formData.sorumluBirim,
         sonTarih: formData.sonTarih || today,
-        riskSeviyesi: formData.riskSeviyesi,
       },
     });
 
@@ -193,7 +191,7 @@ function OperasyonKutuphane() {
           onSubmit={handleSubmit}
           error={formError}
         >
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-4 md:grid-cols-3">
             <label className="space-y-2 text-sm text-slate-600">
               <span>Operasyon adı</span>
               <input required name="ad" value={formData.ad} onChange={handleChange} className="w-full rounded-xl border border-[#D6DEEA] px-4 py-3 outline-none" />
@@ -248,14 +246,6 @@ function OperasyonKutuphane() {
             <label className="space-y-2 text-sm text-slate-600">
               <span>Son tarih</span>
               <input type="date" name="sonTarih" value={formData.sonTarih} onChange={handleChange} className="w-full rounded-xl border border-[#D6DEEA] px-4 py-3 outline-none" />
-            </label>
-            <label className="space-y-2 text-sm text-slate-600">
-              <span>Risk seviyesi</span>
-              <select name="riskSeviyesi" value={formData.riskSeviyesi} onChange={handleChange} className="w-full rounded-xl border border-[#D6DEEA] px-4 py-3 outline-none">
-                <option>yüksek</option>
-                <option>orta</option>
-                <option>düşük</option>
-              </select>
             </label>
           </div>
           <div className="flex justify-end gap-3 pt-2">

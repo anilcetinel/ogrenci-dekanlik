@@ -189,7 +189,7 @@ function addSectionSlide(pptx, sectionTitle) {
     line: { color: WHITE, transparency: 100 },
     rectRadius: 0.08,
   });
-  slide.addText("Yapılanlar · Planlananlar · Bekleyenler · Riskler", {
+  slide.addText("Yapılanlar · Planlananlar · Bekleyenler", {
     x: 1.0, y: 3.78, w: 5.1, h: 0.2,
     fontSize: 10, color: "D6E6F9", fontFace: "Arial",
   });
@@ -263,22 +263,20 @@ function addContentSlide(pptx, { title, items, color = SAU_NAVY, icon = "•", e
   });
 }
 
-function addSummarySlide(pptx, { eyebrow, yapilanlar, yapilacaklar, bekleyenler, sorunlar, haftaSayisi }) {
+function addSummarySlide(pptx, { eyebrow, yapilanlar, yapilacaklar, bekleyenler, haftaSayisi }) {
   const slide = pptx.addSlide();
   addSauBackdrop(pptx, slide, { accent: SAU_ORANGE, photoBand: false });
   addHeader(pptx, slide, "Dönem Özeti", eyebrow || "Faaliyet Panosu");
 
-  // 4 büyük sayı kartı: yönetici sunumunda riskleri ayrı göstermek kritik.
   const cards = [
     { label: "Tamamlanan İş", count: yapilanlar, color: GREEN,    icon: "✓", sub: "yapılan madde" },
     { label: "Planlanan İş",  count: yapilacaklar, color: SAU_NAVY, icon: "→", sub: "yapılacak madde" },
     { label: "Bekleyen",      count: bekleyenler, color: AMBER,    icon: "⏳", sub: "geri dönüş bekleniyor" },
-    { label: "Riskli Konu",   count: sorunlar, color: RED,         icon: "!", sub: "takip gerektiriyor" },
   ];
 
   cards.forEach((card, i) => {
-    const x = 0.72 + i * 3.16;
-    const w = 2.78;
+    const x = 1.25 + i * 3.55;
+    const w = 3.05;
     slide.addShape(pptx.ShapeType.roundRect, {
       x, y: 1.58, w, h: 3.85,
       fill: { color: WHITE, transparency: 88 },
@@ -426,11 +424,9 @@ function SunumHazirla() {
     const allYapilanlar = selectedLogs.flatMap((l) => l.yapilanlar || []);
     const allYapilacaklar = selectedLogs.flatMap((l) => l.yapilacaklar || []);
     const allBekleyenler = selectedLogs.flatMap((l) => l.bekleyenler || []);
-    const allSorunlar = selectedLogs.flatMap((l) => l.sorunlar || []);
     const slideCount = 2
       + (allYapilanlar.length > 0 ? 1 : 0)
       + (allYapilacaklar.length + allBekleyenler.length > 0 ? 1 : 0)
-      + (allSorunlar.length > 0 ? 1 : 0)
       + (includeCalendar && calendarAlerts.length > 0 ? 1 : 0)
       + 1;
 
@@ -438,7 +434,6 @@ function SunumHazirla() {
       yapilanlar: allYapilanlar.length,
       yapilacaklar: allYapilacaklar.length,
       bekleyenler: allBekleyenler.length,
-      sorunlar: allSorunlar.length,
       slideCount,
     };
   }, [calendarAlerts.length, includeCalendar, selectedLogs]);
@@ -471,7 +466,6 @@ function SunumHazirla() {
       const allYapilanlar  = sortedLogs.flatMap((l) => l.yapilanlar  || []);
       const allYapilacaklar = sortedLogs.flatMap((l) => l.yapilacaklar || []);
       const allBekleyenler = sortedLogs.flatMap((l) => l.bekleyenler  || []);
-      const allSorunlar = sortedLogs.flatMap((l) => l.sorunlar || []);
 
       const startLog = sortedLogs[0];
       const endLog   = sortedLogs[sortedLogs.length - 1];
@@ -490,7 +484,6 @@ function SunumHazirla() {
         yapilanlar:  allYapilanlar.length,
         yapilacaklar: allYapilacaklar.length,
         bekleyenler: allBekleyenler.length,
-        sorunlar: allSorunlar.length,
         haftaSayisi: sortedLogs.length,
       });
 
@@ -517,16 +510,6 @@ function SunumHazirla() {
           color: SAU_NAVY,
           icon: "→",
           items: devamItems.slice(0, 6),
-        });
-      }
-
-      if (allSorunlar.length > 0) {
-        addContentSlide(pptx, {
-          title: "Riskler ve İzlenecek Konular",
-          eyebrow: subtitle,
-          color: RED,
-          icon: "!",
-          items: allSorunlar.slice(0, 6),
         });
       }
 
@@ -667,7 +650,6 @@ function SunumHazirla() {
                 { label: "Dönem özeti", val: "1", color: "#1F2D5C" },
                 { label: "Yapılanlar", val: `${Math.min(presentationStats.yapilanlar, 6)} madde`, color: "#1F4D2C" },
                 { label: "Planlanan ve bekleyen", val: `${Math.min(presentationStats.yapilacaklar + presentationStats.bekleyenler, 6)} madde`, color: "#00377B" },
-                presentationStats.sorunlar > 0 ? { label: "Riskler", val: `${Math.min(presentationStats.sorunlar, 6)} madde`, color: "#B42318" } : null,
                 includeCalendar && calendarAlerts.length > 0 ? { label: "Takvim uyarıları", val: `${Math.min(calendarAlerts.length, 6)} olay`, color: "#F58220" } : null,
                 { label: "Kapanış", val: "1", color: "#1F2D5C" },
               ].filter(Boolean).map((row) => (

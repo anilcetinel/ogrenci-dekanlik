@@ -9,7 +9,6 @@ const TYPES = [
   { key: "yapilanlar", label: "Yapılan", color: "#1F4D2C", bg: "bg-[#F0FFF6]", border: "border-[#BDEFD1]", text: "text-[#1F4D2C]", dot: "bg-[#1F4D2C]" },
   { key: "yapilacaklar", label: "Yapılacak", color: "#00377B", bg: "bg-[#EEF3FA]", border: "border-[#BFD0E6]", text: "text-[#00377B]", dot: "bg-[#00377B]" },
   { key: "bekleyenler", label: "Bekleyen", color: "#F58220", bg: "bg-[#FFF8F1]", border: "border-[#F7D7B7]", text: "text-[#9A4A00]", dot: "bg-[#F58220]" },
-  { key: "sorunlar", label: "Riskli", color: "#B42318", bg: "bg-[#FFF7F7]", border: "border-[#F2C8C8]", text: "text-[#B42318]", dot: "bg-[#B42318]" },
 ];
 
 function ProgressBar({ value, max, color }) {
@@ -63,13 +62,12 @@ function YapilanIslerTakibi() {
     const map = new Map();
     logs.forEach((log) => {
       const key = getLogMonthKey(log);
-      const prev = map.get(key) || { key, yapilanlar: 0, yapilacaklar: 0, bekleyenler: 0, sorunlar: 0, haftaSayisi: 0 };
+      const prev = map.get(key) || { key, yapilanlar: 0, yapilacaklar: 0, bekleyenler: 0, haftaSayisi: 0 };
       map.set(key, {
         key,
         yapilanlar:   prev.yapilanlar   + (log.yapilanlar?.length   || 0),
         yapilacaklar: prev.yapilacaklar + (log.yapilacaklar?.length  || 0),
         bekleyenler:  prev.bekleyenler  + (log.bekleyenler?.length   || 0),
-        sorunlar:     prev.sorunlar     + (log.sorunlar?.length      || 0),
         haftaSayisi:  prev.haftaSayisi  + 1,
       });
     });

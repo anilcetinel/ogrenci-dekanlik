@@ -94,7 +94,6 @@ function defaultEmptyForm() {
     yapilanlar: "",
     yapilacaklar: "",
     bekleyenler: "",
-    sorunlar: "",
     hazirlayan: "",
     operasyonIds: [],
   };
@@ -104,7 +103,6 @@ const boardCols = [
   { key: "yapilanlar", label: "Yapılanlar", bg: "bg-[#EEF3FA]", text: "text-[#00377B]", dot: "bg-[#00377B]", icon: "✓" },
   { key: "yapilacaklar", label: "Yapılacaklar", bg: "bg-[#EEF3FA]", text: "text-[#00377B]", dot: "bg-[#00377B]", icon: "→" },
   { key: "bekleyenler", label: "Bekleyenler", bg: "bg-[#F8FAFD]", text: "text-[#1F2D5C]", dot: "bg-[#1F2D5C]", icon: "•" },
-  { key: "sorunlar", label: "Sorunlar / Riskler", bg: "bg-[#F8FAFD]", text: "text-[#1F2D5C]", dot: "bg-[#F58220]", icon: "!" },
 ];
 
 function HaftalikFaaliyetler() {
@@ -211,7 +209,6 @@ function HaftalikFaaliyetler() {
       yapilanlar: splitLines(formData.yapilanlar),
       yapilacaklar: splitLines(formData.yapilacaklar),
       bekleyenler: splitLines(formData.bekleyenler),
-      sorunlar: splitLines(formData.sorunlar),
       hazirlayan: formData.hazirlayan || "Öğrenci Destek Koordinatörlüğü",
       operasyonIds: formData.operasyonIds || [],
     };
@@ -230,7 +227,6 @@ function HaftalikFaaliyetler() {
         yapilanlar: mergeWeeklyItems(existingRecord.yapilanlar, incomingRecord.yapilanlar),
         yapilacaklar: mergeWeeklyItems(existingRecord.yapilacaklar, incomingRecord.yapilacaklar),
         bekleyenler: mergeWeeklyItems(existingRecord.bekleyenler, incomingRecord.bekleyenler),
-        sorunlar: mergeWeeklyItems(existingRecord.sorunlar, incomingRecord.sorunlar),
         hazirlayan: incomingRecord.hazirlayan || existingRecord.hazirlayan,
       }),
     );
@@ -259,6 +255,19 @@ function HaftalikFaaliyetler() {
       [colKey]: (selectedLog[colKey] || []).filter((_, i) => i !== index),
     };
     mergeRecord(updated, (r) => getWeekKey(r.haftaBaslangic), (_, inc) => inc);
+  };
+
+  const handleMoveItemToDone = (colKey, index) => {
+    if (!selectedLog || colKey === "yapilanlar") return;
+    const item = (selectedLog[colKey] || [])[index];
+    if (!item) return;
+    const updated = {
+      ...selectedLog,
+      [colKey]: (selectedLog[colKey] || []).filter((_, i) => i !== index),
+      yapilanlar: mergeWeeklyItems(selectedLog.yapilanlar, [item]),
+    };
+    mergeRecord(updated, (r) => getWeekKey(r.haftaBaslangic), (_, inc) => inc);
+    setSuccessMessage("Madde Yapılanlar alanına taşındı.");
   };
 
   // Belirli bir maddeyi kaydet (düzenleme sonrası)
@@ -382,7 +391,7 @@ function HaftalikFaaliyetler() {
                     >
                       <span className="font-semibold">{log.haftaLabel}</span>
                       <span className="mt-1 block text-[10px] text-slate-400">
-                        {(log.yapilanlar?.length || 0) + (log.yapilacaklar?.length || 0) + (log.bekleyenler?.length || 0) + (log.sorunlar?.length || 0)} madde
+                        {(log.yapilanlar?.length || 0) + (log.yapilacaklar?.length || 0) + (log.bekleyenler?.length || 0)} madde
                       </span>
                     </button>
                   );
@@ -403,7 +412,6 @@ function HaftalikFaaliyetler() {
                     yapilanlar: (selectedLog.yapilanlar || []).join("\n"),
                     yapilacaklar: (selectedLog.yapilacaklar || []).join("\n"),
                     bekleyenler: (selectedLog.bekleyenler || []).join("\n"),
-                    sorunlar: (selectedLog.sorunlar || []).join("\n"),
                     hazirlayan: selectedLog.hazirlayan || "",
                     operasyonIds: selectedLog.operasyonIds || [],
                   });
@@ -460,7 +468,7 @@ function HaftalikFaaliyetler() {
               </div>
 
               {/* Yönetici pano kolonları */}
-              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              <div className="grid gap-4 md:grid-cols-3">
                 {boardCols.map((col) => {
                   const items = selectedLog[col.key] || [];
                   return (
@@ -496,6 +504,13 @@ function HaftalikFaaliyetler() {
                                 <span className="flex-1 leading-relaxed">{item}</span>
                                 {editable && (
                                 <div className="flex shrink-0 gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                                  {col.key !== "yapilanlar" && (
+                                    <button type="button" title="Yapılanlara taşı"
+                                      onClick={() => handleMoveItemToDone(col.key, idx)}
+                                      className="rounded px-2 py-1 text-[10px] font-bold text-[#00377B] hover:bg-[#EEF3FA]">
+                                      Yapıldı
+                                    </button>
+                                  )}
                                   <button type="button" title="Düzenle"
                                     onClick={() => setEditingItem({ colKey: col.key, index: idx, text: item })}
                                     className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-[#00377B]">

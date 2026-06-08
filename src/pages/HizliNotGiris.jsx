@@ -26,16 +26,10 @@ const emptyForm = {
 
 const categoryRules = [
   {
-    key: "sorunlar",
-    label: "Sorunlar / Riskler",
-    tone: "sorun",
-    words: ["sorun", "risk", "kapasite", "gecik", "aksama", "çakış", "eksik", "yetersiz", "iptal", "acil"],
-  },
-  {
     key: "bekleyenler",
     label: "Bekleyenler",
     tone: "bekliyor",
-    words: ["beklen", "bekliyor", "onay", "dönüş", "teyit", "cevap", "netleş", "gelmedi"],
+    words: ["beklen", "bekliyor", "onay", "dönüş", "teyit", "cevap", "netleş", "gelmedi", "kapasite", "gecik", "aksama", "çakış", "eksik", "yetersiz", "iptal", "acil"],
   },
   {
     key: "yapilacaklar",
@@ -51,7 +45,7 @@ const categoryRules = [
   },
 ];
 
-const previewOrder = ["yapilanlar", "yapilacaklar", "bekleyenler", "sorunlar"];
+const previewOrder = ["yapilanlar", "yapilacaklar", "bekleyenler"];
 
 const previewCardStyles = {
   yapilanlar: {
@@ -74,13 +68,6 @@ const previewCardStyles = {
     border: "border-[#F7D7B7]",
     bg: "bg-[#FFF8F1]",
     text: "text-[#9A4A00]",
-  },
-  sorunlar: {
-    title: "Sorunlar",
-    dot: "bg-[#B42318]",
-    border: "border-[#F2C8C8]",
-    bg: "bg-[#FFF7F7]",
-    text: "text-[#B42318]",
   },
 };
 
@@ -146,7 +133,6 @@ function getNoteContribution(note, operations) {
     yapilanlar: preview.yapilanlar || [],
     yapilacaklar: preview.yapilacaklar || [],
     bekleyenler: preview.bekleyenler || [],
-    sorunlar: preview.sorunlar || [],
   };
 }
 
@@ -178,7 +164,7 @@ function cleanExtractedText(value) {
 
 function buildStructuredNoteFromText(value) {
   const sentences = splitNoteSentences(cleanExtractedText(value));
-  const buckets = { yapilanlar: [], yapilacaklar: [], bekleyenler: [], sorunlar: [] };
+  const buckets = { yapilanlar: [], yapilacaklar: [], bekleyenler: [] };
 
   sentences.forEach((sentence) => {
     const bucket = classifySentence(sentence);
@@ -191,7 +177,6 @@ function buildStructuredNoteFromText(value) {
     ["Yapılanlar", buckets.yapilanlar],
     ["Yapılacaklar", buckets.yapilacaklar],
     ["Bekleyenler", buckets.bekleyenler],
-    ["Sorunlar / Riskler", buckets.sorunlar],
   ].filter(([, items]) => items.length > 0);
 
   if (sections.length === 0) {
@@ -221,7 +206,7 @@ function inferOperationIdsFromNote(note, operations) {
 }
 
 function buildPreview(formData, operations) {
-  const buckets = { yapilanlar: [], yapilacaklar: [], bekleyenler: [], sorunlar: [] };
+  const buckets = { yapilanlar: [], yapilacaklar: [], bekleyenler: [] };
   splitNoteSentences(formData.icerik).forEach((sentence) => {
     buckets[classifySentence(sentence)].push(sentence);
   });
@@ -333,7 +318,6 @@ function HizliNotGiris() {
           yapilanlar: removeWeeklyItems(existingRecord.yapilanlar, removedContribution.yapilanlar),
           yapilacaklar: removeWeeklyItems(existingRecord.yapilacaklar, removedContribution.yapilacaklar),
           bekleyenler: removeWeeklyItems(existingRecord.bekleyenler, removedContribution.bekleyenler),
-          sorunlar: removeWeeklyItems(existingRecord.sorunlar, removedContribution.sorunlar),
         }),
       );
       deleteNote(note.id);
@@ -364,7 +348,6 @@ function HizliNotGiris() {
       yapilanlar: preview.yapilanlar,
       yapilacaklar: preview.yapilacaklar,
       bekleyenler: preview.bekleyenler,
-      sorunlar: preview.sorunlar,
     };
     const noteId = `note-${Date.now()}`;
 
@@ -379,7 +362,6 @@ function HizliNotGiris() {
         yapilanlar: mergeWeeklyItems(existingRecord.yapilanlar, nextRecord.yapilanlar),
         yapilacaklar: mergeWeeklyItems(existingRecord.yapilacaklar, nextRecord.yapilacaklar),
         bekleyenler: mergeWeeklyItems(existingRecord.bekleyenler, nextRecord.bekleyenler),
-        sorunlar: mergeWeeklyItems(existingRecord.sorunlar, nextRecord.sorunlar),
         hazirlayan: nextRecord.hazirlayan || existingRecord.hazirlayan,
       }),
     );
@@ -396,7 +378,6 @@ function HizliNotGiris() {
         yapilanlar: preview.yapilanlar,
         yapilacaklar: preview.yapilacaklar,
         bekleyenler: preview.bekleyenler,
-        sorunlar: preview.sorunlar,
       },
       haftaLabel,
       haftaBaslangic: toDateKey(weekStartDate),

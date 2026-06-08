@@ -272,11 +272,9 @@ function OperasyonDetay() {
                                 {formatDate(log.haftaBaslangic)} · {log.hazirlayan}
                               </p>
                             </div>
-                            <Badge tone={log.sorunlar?.length ? "sorun" : "yapildi"}>
-                              {log.sorunlar?.length ? "Risk var" : "Takipte"}
-                            </Badge>
+                            <Badge tone="yapildi">Takipte</Badge>
                           </div>
-                          <div className="mt-4 grid gap-2 text-sm text-slate-700 md:grid-cols-4">
+                          <div className="mt-4 grid gap-2 text-sm text-slate-700 md:grid-cols-3">
                             <p className="rounded-lg bg-white px-3 py-2">
                               Yapılan: {log.yapilanlar?.length || 0}
                             </p>
@@ -285,9 +283,6 @@ function OperasyonDetay() {
                             </p>
                             <p className="rounded-lg bg-white px-3 py-2">
                               Bekleyen: {log.bekleyenler?.length || 0}
-                            </p>
-                            <p className="rounded-lg bg-white px-3 py-2">
-                              Sorun: {log.sorunlar?.length || 0}
                             </p>
                           </div>
                         </div>

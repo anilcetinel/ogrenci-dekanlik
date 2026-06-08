@@ -1357,7 +1357,6 @@ function AkademikTakvim() {
                 <option>Devam Ediyor</option>
                 <option>Beklemede</option>
                 <option>Tamamlandı</option>
-                <option>Riskli</option>
               </select>
             </label>
           </div>
