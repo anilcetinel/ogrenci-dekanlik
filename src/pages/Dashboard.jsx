@@ -273,15 +273,15 @@ function Dashboard() {
             </div>
           </div>
 
-          <div className="grid gap-2 sm:grid-cols-3 lg:min-w-[520px]">
-            <div className="flex items-center justify-between rounded-2xl border border-[#D6DEEA] bg-[#F8FAFD] px-3 py-2.5">
-              <div>
+          <div className="grid gap-2 sm:grid-cols-3 lg:min-w-[600px]">
+            <div className="flex min-w-0 items-center justify-between gap-2 rounded-2xl border border-[#D6DEEA] bg-[#F8FAFD] px-3 py-2.5">
+              <div className="min-w-0">
                 <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Bu Hafta</p>
-                <p className="mt-1 text-base font-black text-[#00377B]">{getWeekRange(today)}</p>
+                <p className="mt-1 truncate text-sm font-black text-[#00377B]">{getWeekRange(today)}</p>
               </div>
               <Link
                 to="/haftalik-faaliyetler"
-                className="rounded-xl bg-[#00377B] px-3 py-2 text-xs font-bold text-white transition hover:bg-[#1F2D5C]"
+                className="shrink-0 whitespace-nowrap rounded-xl bg-[#00377B] px-3 py-2 text-xs font-bold text-white transition hover:bg-[#1F2D5C]"
               >
                 {thisWeekLog ? "Haftayı Aç" : editable ? "+ Kayıt" : "Görüntüle"}
               </Link>
@@ -306,6 +306,17 @@ function Dashboard() {
               <p className="text-xs text-slate-500">İçinde olduğumuz ay otomatik seçilir; yıl ve ayı buradan değiştirin.</p>
             </div>
             <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => setSelectedMonth(getMonthKey(new Date()))}
+                className={`rounded-xl px-3 py-2 text-xs font-bold transition ${
+                  selectedMonth === getMonthKey(today)
+                    ? "bg-[#EEF3FA] text-[#00377B] ring-1 ring-[#BFD0E6]"
+                    : "border border-[#F58220] bg-[#FFF7F1] text-[#A34D00] hover:border-[#00377B] hover:bg-white hover:text-[#00377B]"
+                }`}
+              >
+                Bugünün Ayı
+              </button>
               {visibleYears.map((year) => (
                 <button
                   key={year}
