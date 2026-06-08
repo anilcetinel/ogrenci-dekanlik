@@ -357,82 +357,6 @@ function Dashboard() {
         </div>
       </div>
 
-      {/* Bu haftanın kayıt uyarısı */}
-      {!thisWeekLog && (
-        <section className="rounded-2xl border border-dashed border-[#D6DEEA] bg-white px-4 py-3">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-sm text-slate-500">Bu hafta için henüz faaliyet kaydı girilmemiş.</p>
-            <Link
-              to="/haftalik-faaliyetler"
-              className="rounded-xl bg-[#00377B] px-3 py-2 text-center text-xs font-semibold text-white hover:bg-[#1F2D5C]"
-            >
-              {editable ? "+ Haftalık Kayıt Ekle" : "Haftalıkları Görüntüle"}
-            </Link>
-          </div>
-        </section>
-      )}
-
-      {/* Stat kartları */}
-      <section className="grid gap-4 md:grid-cols-3">
-        <StatCard title="Yapılanlar" value={combined.yapilanlar?.length || 0} detail={`${getMonthLabel(selectedMonth)} · ${monthLogs.length} hafta`} accent="navy" />
-        <StatCard title="Yapılacaklar" value={combined.yapilacaklar?.length || 0} detail="Planlanan maddeler" accent="navy" />
-        <StatCard title="Bekleyenler" value={combined.bekleyenler?.length || 0} detail="Geri dönüş bekleniyor" accent="navy" />
-      </section>
-
-      {/* Madde listesi */}
-      <section className="grid gap-4 lg:grid-cols-2 xl:grid-cols-[minmax(0,1.25fr)_minmax(0,1.25fr)_minmax(0,0.8fr)]">
-        {TYPES.map((t) => {
-          const items = combined[t.key] || [];
-          return (
-            <div key={t.key} className={`rounded-2xl border ${t.border} ${t.bg} p-4`}>
-              <div className="mb-3 flex items-center justify-between">
-                <h3 className={`text-sm font-bold ${t.text}`}>{t.label}</h3>
-                <span className={`rounded-full bg-white/70 px-2 py-0.5 text-[10px] font-semibold ${t.text}`}>{items.length}</span>
-              </div>
-              {items.length > 0 ? (
-                <ul className="space-y-2 max-h-96 overflow-y-auto pr-1">
-                  {items.map((item, i) => (
-                    <li key={`${item.logId}-${t.key}-${item.itemIndex}-${i}`} className="group rounded-xl bg-white/90 px-3 py-2.5 text-sm text-slate-700 leading-relaxed shadow-sm">
-                      <div className="flex items-start gap-2">
-                        <span className={`font-bold ${t.text}`}>{t.icon}</span>
-                        <span className="flex-1">{item.text}</span>
-                        {editable && (
-                          <div className="flex shrink-0 gap-1">
-                            {t.key !== "yapilanlar" && (
-                              <button
-                                type="button"
-                                onClick={() => handleMoveDashboardItemToDone(item, t.key)}
-                                className="rounded-md border border-[#BFD0E6] bg-[#EEF3FA] px-2 py-0.5 text-[10px] font-semibold text-[#00377B] transition hover:border-[#00377B] hover:bg-white"
-                              >
-                                Yapıldı
-                              </button>
-                            )}
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteDashboardItem(item, t.key)}
-                              className="rounded-md border border-red-100 bg-red-50 px-2 py-0.5 text-[10px] font-semibold text-red-600 transition hover:border-red-200 hover:bg-red-100"
-                            >
-                              Sil
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                      <p className="mt-0.5 text-[10px] text-slate-400">
-                        {item.tarih ? dateFormatter.format(new Date(item.tarih)) : item.hafta} · {item.hafta}
-                      </p>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-xs text-slate-400 italic">
-                  {getMonthLabel(selectedMonth)} ayı için kayıt girilmemiş.
-                </p>
-              )}
-            </div>
-          );
-        })}
-      </section>
-
       {/* Akademik takvim + uyarılar */}
       <section className="grid gap-4 xl:grid-cols-[1.35fr_0.65fr]">
         <SectionCard
@@ -570,6 +494,82 @@ function Dashboard() {
             </div>
           </SectionCard>
         </div>
+      </section>
+
+      {/* Bu haftanın kayıt uyarısı */}
+      {!thisWeekLog && (
+        <section className="rounded-2xl border border-dashed border-[#D6DEEA] bg-white px-4 py-3">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm text-slate-500">Bu hafta için henüz faaliyet kaydı girilmemiş.</p>
+            <Link
+              to="/haftalik-faaliyetler"
+              className="rounded-xl bg-[#00377B] px-3 py-2 text-center text-xs font-semibold text-white hover:bg-[#1F2D5C]"
+            >
+              {editable ? "+ Haftalık Kayıt Ekle" : "Haftalıkları Görüntüle"}
+            </Link>
+          </div>
+        </section>
+      )}
+
+      {/* Stat kartları */}
+      <section className="grid gap-4 md:grid-cols-3">
+        <StatCard title="Yapılanlar" value={combined.yapilanlar?.length || 0} detail={`${getMonthLabel(selectedMonth)} · ${monthLogs.length} hafta`} accent="navy" />
+        <StatCard title="Yapılacaklar" value={combined.yapilacaklar?.length || 0} detail="Planlanan maddeler" accent="navy" />
+        <StatCard title="Bekleyenler" value={combined.bekleyenler?.length || 0} detail="Geri dönüş bekleniyor" accent="navy" />
+      </section>
+
+      {/* Madde listesi */}
+      <section className="grid gap-4 lg:grid-cols-2 xl:grid-cols-[minmax(0,1.25fr)_minmax(0,1.25fr)_minmax(0,0.8fr)]">
+        {TYPES.map((t) => {
+          const items = combined[t.key] || [];
+          return (
+            <div key={t.key} className={`rounded-2xl border ${t.border} ${t.bg} p-4`}>
+              <div className="mb-3 flex items-center justify-between">
+                <h3 className={`text-sm font-bold ${t.text}`}>{t.label}</h3>
+                <span className={`rounded-full bg-white/70 px-2 py-0.5 text-[10px] font-semibold ${t.text}`}>{items.length}</span>
+              </div>
+              {items.length > 0 ? (
+                <ul className="space-y-2 max-h-96 overflow-y-auto pr-1">
+                  {items.map((item, i) => (
+                    <li key={`${item.logId}-${t.key}-${item.itemIndex}-${i}`} className="group rounded-xl bg-white/90 px-3 py-2.5 text-sm text-slate-700 leading-relaxed shadow-sm">
+                      <div className="flex items-start gap-2">
+                        <span className={`font-bold ${t.text}`}>{t.icon}</span>
+                        <span className="flex-1">{item.text}</span>
+                        {editable && (
+                          <div className="flex shrink-0 gap-1">
+                            {t.key !== "yapilanlar" && (
+                              <button
+                                type="button"
+                                onClick={() => handleMoveDashboardItemToDone(item, t.key)}
+                                className="rounded-md border border-[#BFD0E6] bg-[#EEF3FA] px-2 py-0.5 text-[10px] font-semibold text-[#00377B] transition hover:border-[#00377B] hover:bg-white"
+                              >
+                                Yapıldı
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteDashboardItem(item, t.key)}
+                              className="rounded-md border border-red-100 bg-red-50 px-2 py-0.5 text-[10px] font-semibold text-red-600 transition hover:border-red-200 hover:bg-red-100"
+                            >
+                              Sil
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                      <p className="mt-0.5 text-[10px] text-slate-400">
+                        {item.tarih ? dateFormatter.format(new Date(item.tarih)) : item.hafta} · {item.hafta}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-xs text-slate-400 italic">
+                  {getMonthLabel(selectedMonth)} ayı için kayıt girilmemiş.
+                </p>
+              )}
+            </div>
+          );
+        })}
       </section>
     </div>
   );
