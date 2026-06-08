@@ -230,7 +230,7 @@ function HaftalikFaaliyetler() {
               ...incomingRecord,
               id: existingRecord.id,
               haftaLabel: existingRecord.haftaLabel || incomingRecord.haftaLabel,
-              haftaBaslangic: getWeekKey(incomingRecord.haftaBaslangic),
+              haftaBaslangic: incomingRecord.haftaBaslangic,
               haftaBitis: incomingRecord.haftaBitis || existingRecord.haftaBitis,
               operasyonIds: uniqueItems([...(existingRecord.operasyonIds || []), ...(incomingRecord.operasyonIds || [])]),
               yapilanlar: mergeWeeklyItems(existingRecord.yapilanlar, incomingRecord.yapilanlar),

@@ -37,7 +37,43 @@ export function getDateMonthKey(value) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
 }
 
+const turkishShortMonths = {
+  Oca: 1,
+  Şub: 2,
+  Sub: 2,
+  Mar: 3,
+  Nis: 4,
+  May: 5,
+  Haz: 6,
+  Tem: 7,
+  Ağu: 8,
+  Agu: 8,
+  Eyl: 9,
+  Eki: 10,
+  Kas: 11,
+  Ara: 12,
+};
+
+function getMonthKeyFromWeekLabel(label) {
+  const match = String(label || "").match(/\b\d{1,2}\s+([A-Za-zÇĞİÖŞÜçğıöşü]{3})\b.*\b(\d{4})\b/);
+  if (!match) {
+    return "";
+  }
+
+  const month = turkishShortMonths[match[1]];
+  if (!month) {
+    return "";
+  }
+
+  return `${match[2]}-${String(month).padStart(2, "0")}`;
+}
+
 export function getWeeklyLogMonthKey(log) {
+  const labelMonthKey = getMonthKeyFromWeekLabel(log.haftaLabel);
+  if (labelMonthKey) {
+    return labelMonthKey;
+  }
+
   const start = getWeeklyLogStart(log);
   return getDateMonthKey(start);
 }
