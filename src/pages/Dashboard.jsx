@@ -15,6 +15,7 @@ import { buildVisibleMonthKeys, getLogMonthKey, getMonthKey, getMonthLabel } fro
 const dateFormatter = new Intl.DateTimeFormat("tr-TR", { day: "2-digit", month: "long", year: "numeric" });
 const shortDateFormatter = new Intl.DateTimeFormat("tr-TR", { day: "2-digit", month: "short" });
 const weekdayFormatter = new Intl.DateTimeFormat("tr-TR", { weekday: "long" });
+const compactDateFormatter = new Intl.DateTimeFormat("tr-TR", { day: "2-digit", month: "short", year: "numeric" });
 
 function weekStart(date) {
   const d = new Date(date);
@@ -38,6 +39,71 @@ const TYPES = [
   { key: "yapilacaklar", label: "Yapılacaklar", icon: "→", bg: "bg-[#EEF3FA]", text: "text-[#00377B]", border: "border-[#BFD0E6]" },
   { key: "bekleyenler",  label: "Bekleyenler",  icon: "•", bg: "bg-[#F8FAFD]", text: "text-[#1F2D5C]", border: "border-[#D6DEEA]" },
 ];
+
+function eventSpansMonthKey(event, monthKey) {
+  const [year, month] = monthKey.split("-").map(Number);
+  const monthStart = new Date(year, month - 1, 1);
+  const monthEnd = new Date(year, month, 0);
+  const start = new Date(event.baslangic);
+  const end = new Date(event.bitis || event.baslangic);
+
+  if (Number.isNaN(start.getTime())) return false;
+  start.setHours(0, 0, 0, 0);
+  end.setHours(0, 0, 0, 0);
+
+  return start <= monthEnd && end >= monthStart;
+}
+
+function getEventDateRange(event) {
+  const start = new Date(event.baslangic);
+  const end = new Date(event.bitis || event.baslangic);
+
+  if (Number.isNaN(start.getTime())) return "Tarih belirtilmedi";
+  if (event.bitis && event.bitis !== event.baslangic && !Number.isNaN(end.getTime())) {
+    return `${compactDateFormatter.format(start)} – ${compactDateFormatter.format(end)}`;
+  }
+
+  return compactDateFormatter.format(start);
+}
+
+function getEventAccent(event) {
+  const category = String(event.kategori || "").toLocaleLowerCase("tr-TR");
+  const criticality = String(event.kritiklik || "").toLocaleLowerCase("tr-TR");
+
+  if (criticality === "yüksek" || category.includes("sınav")) {
+    return {
+      line: "bg-red-500",
+      bg: "bg-red-50",
+      border: "border-red-100",
+      text: "text-red-700",
+    };
+  }
+
+  if (category.includes("başvuru") || criticality === "orta") {
+    return {
+      line: "bg-[#F58220]",
+      bg: "bg-[#FFF7F1]",
+      border: "border-orange-100",
+      text: "text-[#A34D00]",
+    };
+  }
+
+  if (category.includes("muafiyet")) {
+    return {
+      line: "bg-[#1F4D2C]",
+      bg: "bg-emerald-50",
+      border: "border-emerald-100",
+      text: "text-[#1F4D2C]",
+    };
+  }
+
+  return {
+    line: "bg-[#00377B]",
+    bg: "bg-[#EEF3FA]",
+    border: "border-[#BFD0E6]",
+    text: "text-[#00377B]",
+  };
+}
 
 function Dashboard() {
   const editable = canEditData();
@@ -102,6 +168,24 @@ function Dashboard() {
   );
 
   const urgentCount = calendarAlerts.filter((e) => ["kritik", "dikkat"].includes(e.alert.level)).length;
+
+  const operationNameById = useMemo(
+    () =>
+      operasyonRecords.reduce((acc, operation) => {
+        acc[String(operation.id)] = operation.ad;
+        return acc;
+      }, {}),
+    [operasyonRecords],
+  );
+
+  const selectedMonthCalendarEvents = useMemo(
+    () =>
+      takvimRecords
+        .filter((event) => eventSpansMonthKey(event, selectedMonth))
+        .map((event) => ({ ...event, alert: getCalendarAlert(event, today) }))
+        .sort((a, b) => new Date(a.baslangic) - new Date(b.baslangic)),
+    [takvimRecords, selectedMonth],
+  );
 
   // Bu haftanın kaydı
   const thisWeekLog = useMemo(() => {
@@ -347,60 +431,171 @@ function Dashboard() {
         })}
       </section>
 
-      {/* Takvim uyarıları + Hızlı erişim */}
-      <section className="grid gap-4 xl:grid-cols-[1.5fr_0.5fr]">
-        <SectionCard title="Yaklaşan Takvim Uyarıları">
-          <div className="space-y-2">
-            {calendarAlerts.length > 0 ? (
-              calendarAlerts.slice(0, 6).map((event) => (
-                <div key={event.id} className="flex items-center gap-3 rounded-xl border border-[#E5E7EB] bg-slate-50 px-4 py-3">
-                  <AlertDot level={event.alert.level} />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-[#1F2D5C] truncate">{event.ad}</p>
-                    <p className="text-xs text-slate-500">{dateFormatter.format(new Date(event.baslangic))}</p>
-                  </div>
-                  <div className="shrink-0">
-                    <Badge tone={event.alert.tone}>{event.alert.label}</Badge>
-                    {event.alert.daysLeft > 0 && (
-                      <p className="mt-0.5 text-center text-[10px] text-slate-400">{event.alert.daysLeft} gün</p>
-                    )}
-                  </div>
-                </div>
-              ))
-            ) : (
-              <p className="rounded-xl border border-dashed border-[#D6DEEA] bg-slate-50 px-4 py-5 text-sm text-slate-500">
-                Önümüzdeki 30 gün içinde takvim uyarısı yok.
-              </p>
-            )}
-            {calendarAlerts.length > 6 && (
-              <Link to="/akademik-takvim" className="block rounded-xl border border-dashed border-[#D6DEEA] py-2 text-center text-xs text-[#00377B] hover:bg-[#EEF3FA]">
-                +{calendarAlerts.length - 6} uyarı daha →
-              </Link>
-            )}
+      {/* Akademik takvim + uyarılar */}
+      <section className="grid gap-4 xl:grid-cols-[1.35fr_0.65fr]">
+        <SectionCard
+          title="Bu Ayın Akademik Takvimi"
+          action={
+            <Link
+              to="/akademik-takvim"
+              className="rounded-xl border border-[#BFD0E6] bg-[#EEF3FA] px-3 py-2 text-xs font-bold text-[#00377B] transition hover:border-[#00377B] hover:bg-white"
+            >
+              Detaylı Takvim →
+            </Link>
+          }
+          className="overflow-hidden"
+        >
+          <div className="-mx-5 -mt-5 mb-5 border-b border-[#D6DEEA] bg-gradient-to-r from-[#EEF3FA] via-white to-[#FFF7F1] px-5 py-4">
+            <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+              <div>
+                <p className="text-[11px] font-black uppercase tracking-[0.22em] text-[#8A9AB5]">
+                  {getMonthLabel(selectedMonth)}
+                </p>
+                <h3 className="mt-1 text-xl font-black text-[#1F2D5C]">
+                  Akademik olaylar ve bağlı süreçler
+                </h3>
+              </div>
+              <div className="grid grid-cols-3 gap-2 text-center">
+                <CalendarMiniStat label="Olay" value={selectedMonthCalendarEvents.length} />
+                <CalendarMiniStat
+                  label="Uyarı"
+                  value={selectedMonthCalendarEvents.filter((event) => ["kritik", "dikkat", "devam"].includes(event.alert.level)).length}
+                />
+                <CalendarMiniStat
+                  label="Operasyon"
+                  value={
+                    new Set(
+                      selectedMonthCalendarEvents.flatMap((event) => event.operasyonIds || event.ilgiliOperasyonlar || []),
+                    ).size
+                  }
+                />
+              </div>
+            </div>
           </div>
+
+          {selectedMonthCalendarEvents.length > 0 ? (
+            <div className="grid gap-3 md:grid-cols-2">
+              {selectedMonthCalendarEvents.slice(0, 8).map((event) => (
+                <CalendarEventCard key={event.id} event={event} operationNameById={operationNameById} />
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-dashed border-[#BFD0E6] bg-[#F8FAFD] px-5 py-8 text-center">
+              <p className="text-sm font-bold text-[#1F2D5C]">{getMonthLabel(selectedMonth)} için akademik takvim olayı yok.</p>
+              <p className="mt-1 text-xs text-slate-500">Excel yüklediğinizde veya olay eklediğinizde bu ayın kartları burada otomatik görünür.</p>
+            </div>
+          )}
+
+          {selectedMonthCalendarEvents.length > 8 && (
+            <Link
+              to="/akademik-takvim"
+              className="mt-3 block rounded-xl border border-dashed border-[#BFD0E6] bg-[#F8FAFD] py-2.5 text-center text-xs font-bold text-[#00377B] transition hover:bg-[#EEF3FA]"
+            >
+              +{selectedMonthCalendarEvents.length - 8} olay daha · Akademik takvimde aç
+            </Link>
+          )}
         </SectionCard>
 
-        <SectionCard title="Hızlı Erişim">
-          <div className="grid gap-2">
-            {[
-              { to: "/haftalik-faaliyetler", label: editable ? "Haftalık Kayıt Ekle" : "Haftalıkları Görüntüle" },
-              { to: "/akademik-takvim", label: "Akademik Takvim" },
-              { to: "/operasyon-takip", label: "Yapılan İşler Takibi" },
-              { to: "/sunum-hazirla", label: "Sunum Hazırla" },
-            ].map((link) => (
-              <Link
-                key={link.to}
-                to={link.to}
-                className="flex items-center justify-between rounded-xl border border-[#D6DEEA] bg-[#F8FAFD] px-4 py-3 text-sm font-medium text-[#1F2D5C] transition hover:border-[#00377B] hover:bg-white"
-              >
-                {link.label}
-                <span className="text-slate-400">›</span>
-              </Link>
-            ))}
-          </div>
-        </SectionCard>
+        <div className="grid gap-4">
+          <SectionCard title="Yaklaşan Uyarılar">
+            <div className="space-y-2">
+              {calendarAlerts.length > 0 ? (
+                calendarAlerts.slice(0, 4).map((event) => (
+                  <Link
+                    key={event.id}
+                    to="/akademik-takvim"
+                    className="flex items-center gap-3 rounded-xl border border-[#E5E7EB] bg-slate-50 px-4 py-3 transition hover:border-[#00377B] hover:bg-white"
+                  >
+                    <AlertDot level={event.alert.level} />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold text-[#1F2D5C]">{event.ad}</p>
+                      <p className="text-xs text-slate-500">{dateFormatter.format(new Date(event.baslangic))}</p>
+                    </div>
+                    <div className="shrink-0">
+                      <Badge tone={event.alert.tone}>{event.alert.label}</Badge>
+                      {event.alert.daysLeft > 0 && (
+                        <p className="mt-0.5 text-center text-[10px] text-slate-400">{event.alert.daysLeft} gün</p>
+                      )}
+                    </div>
+                  </Link>
+                ))
+              ) : (
+                <p className="rounded-xl border border-dashed border-[#D6DEEA] bg-slate-50 px-4 py-5 text-sm text-slate-500">
+                  Önümüzdeki 30 gün içinde takvim uyarısı yok.
+                </p>
+              )}
+            </div>
+          </SectionCard>
+
+          <SectionCard title="Hızlı Erişim">
+            <div className="grid gap-2">
+              {[
+                { to: "/haftalik-faaliyetler", label: editable ? "Haftalık Kayıt Ekle" : "Haftalıkları Görüntüle" },
+                { to: "/akademik-takvim", label: "Akademik Takvim" },
+                { to: "/operasyon-takip", label: "Yapılan İşler Takibi" },
+                { to: "/sunum-hazirla", label: "Sunum Hazırla" },
+              ].map((link) => (
+                <Link
+                  key={link.to}
+                  to={link.to}
+                  className="flex items-center justify-between rounded-xl border border-[#D6DEEA] bg-[#F8FAFD] px-4 py-3 text-sm font-medium text-[#1F2D5C] transition hover:border-[#00377B] hover:bg-white"
+                >
+                  {link.label}
+                  <span className="text-slate-400">›</span>
+                </Link>
+              ))}
+            </div>
+          </SectionCard>
+        </div>
       </section>
     </div>
+  );
+}
+
+function CalendarMiniStat({ label, value }) {
+  return (
+    <div className="rounded-2xl border border-[#BFD0E6] bg-white/80 px-3 py-2 shadow-sm">
+      <p className="text-[10px] font-bold uppercase tracking-wider text-[#8A9AB5]">{label}</p>
+      <p className="mt-0.5 text-lg font-black text-[#00377B]">{value}</p>
+    </div>
+  );
+}
+
+function CalendarEventCard({ event, operationNameById }) {
+  const accent = getEventAccent(event);
+  const operationIds = event.operasyonIds || event.ilgiliOperasyonlar || [];
+  const operationNames = operationIds.map((id) => operationNameById[String(id)] || id).filter(Boolean);
+
+  return (
+    <Link
+      to="/akademik-takvim"
+      className={`group relative overflow-hidden rounded-2xl border ${accent.border} ${accent.bg} p-4 transition hover:-translate-y-0.5 hover:border-[#00377B] hover:shadow-md`}
+    >
+      <span className={`absolute inset-y-0 left-0 w-1.5 ${accent.line}`} />
+      <div className="pl-1">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className={`line-clamp-2 text-sm font-black leading-snug ${accent.text}`}>{event.ad}</p>
+            <p className="mt-1 text-xs font-semibold text-[#60708B]">{getEventDateRange(event)}</p>
+          </div>
+          <Badge tone={event.alert.tone}>{event.alert.label}</Badge>
+        </div>
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {event.kategori && <span className="rounded-full bg-white/80 px-2.5 py-1 text-[10px] font-bold text-[#1F2D5C] ring-1 ring-[#D6DEEA]">{event.kategori}</span>}
+          {operationNames.length > 0 ? (
+            operationNames.slice(0, 2).map((operation) => (
+              <span key={operation} className="rounded-full bg-white/80 px-2.5 py-1 text-[10px] font-bold text-[#00377B] ring-1 ring-[#BFD0E6]">
+                {operation}
+              </span>
+            ))
+          ) : (
+            <span className="rounded-full bg-white/80 px-2.5 py-1 text-[10px] font-bold text-slate-500 ring-1 ring-[#D6DEEA]">
+              Operasyon bağlantısı yok
+            </span>
+          )}
+        </div>
+      </div>
+    </Link>
   );
 }
 
