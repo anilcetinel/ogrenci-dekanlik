@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import * as XLSX from "xlsx";
 import Badge from "../components/Badge";
 import FormModal from "../components/FormModal";
@@ -524,8 +525,32 @@ function safeColumnValue(row, columnIndex, fallback = "") {
   return columnIndex !== -1 ? row[columnIndex] : fallback;
 }
 
+function parseMonthParam(value) {
+  const match = String(value || "").match(/^(\d{4})-(\d{2})$/);
+  if (!match) {
+    return null;
+  }
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  if (!year || month < 1 || month > 12) {
+    return null;
+  }
+
+  return new Date(year, month - 1, 1);
+}
+
+function normalizeViewParam(value) {
+  const view = String(value || "").toLocaleLowerCase("tr-TR");
+  if (view === "aylik" || view === "aylık" || view === "month") return "Aylık";
+  if (view === "liste" || view === "list") return "Liste";
+  if (view === "yillik" || view === "yıllık" || view === "year") return "Yıllık";
+  return "";
+}
+
 function AkademikTakvim() {
   const editable = canEditData();
+  const [searchParams] = useSearchParams();
   const sharedDebugInfo = getSharedStorageDebugInfo();
   const { records: events, addRecord, upsertRecords, clearRecords, syncStatus } = useStoredCollection(
     "akademikTakvimRecords",
@@ -543,6 +568,19 @@ function AkademikTakvim() {
   const [previewRows, setPreviewRows] = useState([]);
   const [importError, setImportError] = useState("");
   const [importReport, setImportReport] = useState(null);
+
+  useEffect(() => {
+    const view = normalizeViewParam(searchParams.get("view"));
+    const month = parseMonthParam(searchParams.get("month"));
+
+    if (view) {
+      setViewMode(view);
+    }
+
+    if (month) {
+      setSelectedMonth(month);
+    }
+  }, [searchParams]);
 
   const calendarEvents = (previewRows.length > 0 ? previewRows : events).filter(
     (event) => !isAcademicPeriodTitle(event.ad),

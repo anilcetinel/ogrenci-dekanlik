@@ -187,6 +187,8 @@ function Dashboard() {
     [takvimRecords, selectedMonth],
   );
 
+  const selectedMonthCalendarPath = `/akademik-takvim?view=aylik&month=${selectedMonth}`;
+
   // Bu haftanın kaydı
   const thisWeekLog = useMemo(() => {
     const ws = weekStart(today);
@@ -437,10 +439,10 @@ function Dashboard() {
           title="Bu Ayın Akademik Takvimi"
           action={
             <Link
-              to="/akademik-takvim"
+              to={selectedMonthCalendarPath}
               className="rounded-xl border border-[#BFD0E6] bg-[#EEF3FA] px-3 py-2 text-xs font-bold text-[#00377B] transition hover:border-[#00377B] hover:bg-white"
             >
-              Detaylı Takvim →
+              Ayı Detaylı Aç →
             </Link>
           }
           className="overflow-hidden"
@@ -476,7 +478,12 @@ function Dashboard() {
           {selectedMonthCalendarEvents.length > 0 ? (
             <div className="grid gap-3 md:grid-cols-2">
               {selectedMonthCalendarEvents.slice(0, 8).map((event) => (
-                <CalendarEventCard key={event.id} event={event} operationNameById={operationNameById} />
+                <CalendarEventCard
+                  key={event.id}
+                  event={event}
+                  operationNameById={operationNameById}
+                  detailPath={selectedMonthCalendarPath}
+                />
               ))}
             </div>
           ) : (
@@ -488,10 +495,26 @@ function Dashboard() {
 
           {selectedMonthCalendarEvents.length > 8 && (
             <Link
-              to="/akademik-takvim"
-              className="mt-3 block rounded-xl border border-dashed border-[#BFD0E6] bg-[#F8FAFD] py-2.5 text-center text-xs font-bold text-[#00377B] transition hover:bg-[#EEF3FA]"
+              to={selectedMonthCalendarPath}
+              className="group mt-4 flex flex-col gap-3 overflow-hidden rounded-2xl border border-[#BFD0E6] bg-gradient-to-r from-[#00377B] via-[#1F2D5C] to-[#F58220] p-[1px] shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg sm:flex-row sm:items-center sm:justify-between"
             >
-              +{selectedMonthCalendarEvents.length - 8} olay daha · Akademik takvimde aç
+              <div className="flex flex-1 items-center gap-3 rounded-[calc(1rem-1px)] bg-white/95 px-4 py-3 sm:rounded-r-none">
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#EEF3FA] text-lg font-black text-[#00377B] ring-1 ring-[#BFD0E6]">
+                  +{selectedMonthCalendarEvents.length - 8}
+                </span>
+                <div>
+                  <p className="text-sm font-black text-[#1F2D5C]">Bu ayda gösterilmeyen olaylar var</p>
+                  <p className="mt-0.5 text-xs font-medium text-[#60708B]">
+                    Tüm olayları gün bazında ve tam takvim üzerinde inceleyin.
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center justify-between gap-3 px-4 pb-3 text-white sm:px-5 sm:py-3">
+                <span className="text-xs font-black uppercase tracking-[0.16em]">Aylık Detay</span>
+                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20 text-lg transition group-hover:translate-x-1">
+                  →
+                </span>
+              </div>
             </Link>
           )}
         </SectionCard>
@@ -561,14 +584,14 @@ function CalendarMiniStat({ label, value }) {
   );
 }
 
-function CalendarEventCard({ event, operationNameById }) {
+function CalendarEventCard({ event, operationNameById, detailPath }) {
   const accent = getEventAccent(event);
   const operationIds = event.operasyonIds || event.ilgiliOperasyonlar || [];
   const operationNames = operationIds.map((id) => operationNameById[String(id)] || id).filter(Boolean);
 
   return (
     <Link
-      to="/akademik-takvim"
+      to={detailPath}
       className={`group relative overflow-hidden rounded-2xl border ${accent.border} ${accent.bg} p-4 transition hover:-translate-y-0.5 hover:border-[#00377B] hover:shadow-md`}
     >
       <span className={`absolute inset-y-0 left-0 w-1.5 ${accent.line}`} />
