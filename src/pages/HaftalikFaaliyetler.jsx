@@ -124,8 +124,10 @@ function HaftalikFaaliyetler() {
     return logs.length > 0 ? new Date(logs[0].haftaBaslangic) : new Date();
   });
   const [modalOpen, setModalOpen] = useState(false);
+  const [formMode, setFormMode] = useState("new");
   const [formData, setFormData] = useState(defaultEmptyForm);
   const [editingItem, setEditingItem] = useState(null); // { colKey, index, text }
+  const [addingItem, setAddingItem] = useState(null); // { colKey, text }
   const [formError, setFormError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [userSelectedWeek, setUserSelectedWeek] = useState(false);
@@ -216,25 +218,33 @@ function HaftalikFaaliyetler() {
     mergeRecord(
       newRecord,
       (record) => getWeekKey(record.haftaBaslangic),
-      (existingRecord, incomingRecord) => ({
-        ...existingRecord,
-        ...incomingRecord,
-        id: existingRecord.id,
-        haftaLabel: existingRecord.haftaLabel || incomingRecord.haftaLabel,
-        haftaBaslangic: getWeekKey(incomingRecord.haftaBaslangic),
-        haftaBitis: incomingRecord.haftaBitis || existingRecord.haftaBitis,
-        operasyonIds: uniqueItems([...(existingRecord.operasyonIds || []), ...(incomingRecord.operasyonIds || [])]),
-        yapilanlar: mergeWeeklyItems(existingRecord.yapilanlar, incomingRecord.yapilanlar),
-        yapilacaklar: mergeWeeklyItems(existingRecord.yapilacaklar, incomingRecord.yapilacaklar),
-        bekleyenler: mergeWeeklyItems(existingRecord.bekleyenler, incomingRecord.bekleyenler),
-        hazirlayan: incomingRecord.hazirlayan || existingRecord.hazirlayan,
-      }),
+      (existingRecord, incomingRecord) =>
+        formMode === "edit"
+          ? {
+              ...existingRecord,
+              ...incomingRecord,
+              id: existingRecord.id,
+            }
+          : {
+              ...existingRecord,
+              ...incomingRecord,
+              id: existingRecord.id,
+              haftaLabel: existingRecord.haftaLabel || incomingRecord.haftaLabel,
+              haftaBaslangic: getWeekKey(incomingRecord.haftaBaslangic),
+              haftaBitis: incomingRecord.haftaBitis || existingRecord.haftaBitis,
+              operasyonIds: uniqueItems([...(existingRecord.operasyonIds || []), ...(incomingRecord.operasyonIds || [])]),
+              yapilanlar: mergeWeeklyItems(existingRecord.yapilanlar, incomingRecord.yapilanlar),
+              yapilacaklar: mergeWeeklyItems(existingRecord.yapilacaklar, incomingRecord.yapilacaklar),
+              bekleyenler: mergeWeeklyItems(existingRecord.bekleyenler, incomingRecord.bekleyenler),
+              hazirlayan: incomingRecord.hazirlayan || existingRecord.hazirlayan,
+            },
     );
     setSelectedDate(ws);
     setCurrentMonth(new Date(ws.getFullYear(), ws.getMonth(), 1));
     setModalOpen(false);
     setFormData(defaultEmptyForm());
-    setSuccessMessage("Haftalık kayıt eklendi. Aynı haftadaki eski maddeler korundu.");
+    setFormMode("new");
+    setSuccessMessage(formMode === "edit" ? "Haftalık kayıt güncellendi." : "Haftalık kayıt eklendi. Aynı haftadaki eski maddeler korundu.");
   };
 
   const getOpName = (id) => operations.find((op) => String(op.id) === String(id))?.ad || "";
@@ -255,6 +265,7 @@ function HaftalikFaaliyetler() {
       [colKey]: (selectedLog[colKey] || []).filter((_, i) => i !== index),
     };
     mergeRecord(updated, (r) => getWeekKey(r.haftaBaslangic), (_, inc) => inc);
+    setSuccessMessage("Madde silindi.");
   };
 
   const handleMoveItemToDone = (colKey, index) => {
@@ -278,6 +289,59 @@ function HaftalikFaaliyetler() {
     const updated = { ...selectedLog, [colKey]: arr };
     mergeRecord(updated, (r) => getWeekKey(r.haftaBaslangic), (_, inc) => inc);
     setEditingItem(null);
+    setSuccessMessage("Madde güncellendi.");
+  };
+
+  const openNewWeekForm = () => {
+    const f = defaultEmptyForm();
+    setFormMode("new");
+    setFormData({ ...f, haftaBaslangic: toDateKey(ws), haftaBitis: toDateKey(we) });
+    setModalOpen(true);
+  };
+
+  const openEditWeekForm = () => {
+    if (!selectedLog) {
+      openNewWeekForm();
+      return;
+    }
+
+    setFormMode("edit");
+    setFormData({
+      haftaBaslangic: selectedLog.haftaBaslangic,
+      haftaBitis: selectedLog.haftaBitis || "",
+      yapilanlar: (selectedLog.yapilanlar || []).join("\n"),
+      yapilacaklar: (selectedLog.yapilacaklar || []).join("\n"),
+      bekleyenler: (selectedLog.bekleyenler || []).join("\n"),
+      hazirlayan: selectedLog.hazirlayan || "",
+      operasyonIds: selectedLog.operasyonIds || [],
+    });
+    setModalOpen(true);
+  };
+
+  const handleAddItem = (colKey) => {
+    const text = addingItem?.colKey === colKey ? addingItem.text.trim() : "";
+    if (!text) return;
+
+    const baseRecord = selectedLog || {
+      id: `week-${getWeekKey(ws)}`,
+      haftaLabel: `${dayFmt.format(ws)} – ${dayFmt.format(we)} ${ws.getFullYear()} Haftası`,
+      haftaBaslangic: toDateKey(ws),
+      haftaBitis: toDateKey(we),
+      yapilanlar: [],
+      yapilacaklar: [],
+      bekleyenler: [],
+      hazirlayan: "Öğrenci Destek Koordinatörlüğü",
+      operasyonIds: [],
+    };
+
+    const updated = {
+      ...baseRecord,
+      [colKey]: mergeWeeklyItems(baseRecord[colKey], [text]),
+    };
+
+    mergeRecord(updated, (r) => getWeekKey(r.haftaBaslangic), (_, inc) => inc);
+    setAddingItem(null);
+    setSuccessMessage("Yeni madde eklendi.");
   };
 
   const ws = weekStart(selectedDate);
@@ -401,30 +465,24 @@ function HaftalikFaaliyetler() {
           )}
 
           {editable && (
-            <button
-              type="button"
-              onClick={() => {
-                if (selectedLog) {
-                  // Mevcut haftanın verilerini forma doldur
-                  setFormData({
-                    haftaBaslangic: selectedLog.haftaBaslangic,
-                    haftaBitis: selectedLog.haftaBitis || "",
-                    yapilanlar: (selectedLog.yapilanlar || []).join("\n"),
-                    yapilacaklar: (selectedLog.yapilacaklar || []).join("\n"),
-                    bekleyenler: (selectedLog.bekleyenler || []).join("\n"),
-                    hazirlayan: selectedLog.hazirlayan || "",
-                    operasyonIds: selectedLog.operasyonIds || [],
-                  });
-                } else {
-                  const f = defaultEmptyForm();
-                  setFormData({ ...f, haftaBaslangic: toDateKey(ws) });
-                }
-                setModalOpen(true);
-              }}
-              className="w-full rounded-xl bg-[#00377B] py-2.5 text-sm font-medium text-white transition hover:bg-[#1F2D5C]"
-            >
-              {selectedLog ? "✎ Haftayı Düzenle" : "+ Yeni Haftalık Kayıt"}
-            </button>
+            <div className="grid gap-2">
+              <button
+                type="button"
+                onClick={openNewWeekForm}
+                className="w-full rounded-xl bg-[#00377B] py-2.5 text-sm font-bold text-white transition hover:bg-[#1F2D5C]"
+              >
+                + Yeni Haftalık Kayıt
+              </button>
+              {selectedLog && (
+                <button
+                  type="button"
+                  onClick={openEditWeekForm}
+                  className="w-full rounded-xl border border-[#BFD0E6] bg-[#EEF3FA] py-2.5 text-sm font-bold text-[#00377B] transition hover:border-[#00377B] hover:bg-white"
+                >
+                  Haftayı Düzenle
+                </button>
+              )}
+            </div>
           )}
         </div>
 
@@ -444,9 +502,24 @@ function HaftalikFaaliyetler() {
                       <h2 className="mt-2 text-2xl font-black tracking-tight text-[#1F2D5C]">{selectedLog.haftaLabel}</h2>
                       <p className="mt-1 text-sm text-slate-500">{selectedLog.hazirlayan}</p>
                     </div>
-                    <span className="inline-flex rounded-full border border-[#BFD0E6] bg-[#EEF3FA] px-3 py-1 text-xs font-bold text-[#00377B]">
-                      Kayıt görüntüleniyor
-                    </span>
+                    {editable && (
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={openNewWeekForm}
+                          className="rounded-xl bg-[#00377B] px-3 py-2 text-xs font-bold text-white transition hover:bg-[#1F2D5C]"
+                        >
+                          + Yeni Kayıt
+                        </button>
+                        <button
+                          type="button"
+                          onClick={openEditWeekForm}
+                          className="rounded-xl border border-[#BFD0E6] bg-[#EEF3FA] px-3 py-2 text-xs font-bold text-[#00377B] transition hover:border-[#00377B] hover:bg-white"
+                        >
+                          Düzenle
+                        </button>
+                      </div>
+                    )}
                   </div>
                 <div className="mt-4 flex flex-wrap items-center gap-2 text-sm text-slate-500">
                   {(selectedLog.operasyonIds || []).map((id) => (
@@ -480,6 +553,46 @@ function HaftalikFaaliyetler() {
                         <p className={`text-xs font-bold uppercase tracking-wide ${col.text}`}>{col.label}</p>
                         <span className="ml-auto rounded-full bg-white/70 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500">{items.length}</span>
                       </div>
+                      {editable && (
+                        <div className="mb-3">
+                          {addingItem?.colKey === col.key ? (
+                            <div className="rounded-2xl border border-[#BFD0E6] bg-white p-2 shadow-sm">
+                              <textarea
+                                value={addingItem.text}
+                                onChange={(event) => setAddingItem({ colKey: col.key, text: event.target.value })}
+                                rows={2}
+                                autoFocus
+                                placeholder={`${col.label} için yeni madde yazın`}
+                                className="w-full resize-none rounded-xl border border-[#D6DEEA] px-3 py-2 text-sm outline-none focus:border-[#00377B]"
+                              />
+                              <div className="mt-2 flex gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => handleAddItem(col.key)}
+                                  className="rounded-lg bg-[#00377B] px-3 py-1.5 text-xs font-bold text-white"
+                                >
+                                  Ekle
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setAddingItem(null)}
+                                  className="rounded-lg border border-[#D6DEEA] px-3 py-1.5 text-xs font-semibold text-slate-500"
+                                >
+                                  Vazgeç
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => setAddingItem({ colKey: col.key, text: "" })}
+                              className="w-full rounded-xl border border-dashed border-[#BFD0E6] bg-white/70 px-3 py-2 text-xs font-bold text-[#00377B] transition hover:border-[#00377B] hover:bg-white"
+                            >
+                              + Madde Ekle
+                            </button>
+                          )}
+                        </div>
+                      )}
                       {items.length > 0 ? (
                         <ul className="space-y-2">
                           {items.map((item, idx) =>
@@ -503,29 +616,23 @@ function HaftalikFaaliyetler() {
                                 <span className={`shrink-0 font-bold ${col.text}`}>{col.icon}</span>
                                 <span className="flex-1 leading-relaxed">{item}</span>
                                 {editable && (
-                                <div className="flex shrink-0 gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                                <div className="flex shrink-0 flex-wrap justify-end gap-1">
                                   {col.key !== "yapilanlar" && (
                                     <button type="button" title="Yapılanlara taşı"
                                       onClick={() => handleMoveItemToDone(col.key, idx)}
-                                      className="rounded px-2 py-1 text-[10px] font-bold text-[#00377B] hover:bg-[#EEF3FA]">
+                                      className="rounded-lg border border-[#BFD0E6] bg-[#EEF3FA] px-2 py-1 text-[10px] font-bold text-[#00377B] hover:border-[#00377B] hover:bg-white">
                                       Yapıldı
                                     </button>
                                   )}
                                   <button type="button" title="Düzenle"
                                     onClick={() => setEditingItem({ colKey: col.key, index: idx, text: item })}
-                                    className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-[#00377B]">
-                                    <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                                      <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
-                                      <path d="M18.5 2.5a2.1 2.1 0 013 3L12 15l-4 1 1-4z" />
-                                    </svg>
+                                    className="rounded-lg border border-[#D6DEEA] bg-white px-2 py-1 text-[10px] font-bold text-[#1F2D5C] hover:border-[#00377B] hover:text-[#00377B]">
+                                    Düzenle
                                   </button>
                                   <button type="button" title="Sil"
                                     onClick={() => handleDeleteItem(col.key, idx)}
-                                    className="rounded p-1 text-slate-400 hover:bg-red-50 hover:text-red-600">
-                                    <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                                      <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14H6L5 6" />
-                                      <path d="M10 11v6M14 11v6" /><path d="M9 6V4h6v2" />
-                                    </svg>
+                                    className="rounded-lg border border-red-100 bg-red-50 px-2 py-1 text-[10px] font-bold text-red-600 hover:border-red-200 hover:bg-red-100">
+                                    Sil
                                   </button>
                                 </div>
                                 )}
@@ -576,7 +683,16 @@ function HaftalikFaaliyetler() {
 
       {/* Form Modal */}
       {modalOpen && (
-        <FormModal title="Haftalık Faaliyet Girişi" onClose={() => setModalOpen(false)} onSubmit={handleSubmit} error={formError}>
+        <FormModal
+          title={formMode === "edit" ? "Haftalık Kaydı Düzenle" : "Yeni Haftalık Kayıt"}
+          onClose={() => {
+            setModalOpen(false);
+            setFormMode("new");
+            setFormError("");
+          }}
+          onSubmit={handleSubmit}
+          error={formError}
+        >
           <div className="grid gap-4 md:grid-cols-2">
             <label className="block space-y-2 text-sm text-slate-600">
               <span>Başlangıç Tarihi</span>
@@ -627,10 +743,16 @@ function HaftalikFaaliyetler() {
             </div>
           </div>
           <div className="flex justify-end gap-3 pt-2">
-            <button type="button" onClick={() => setModalOpen(false)}
+            <button type="button" onClick={() => {
+              setModalOpen(false);
+              setFormMode("new");
+              setFormError("");
+            }}
               className="rounded-xl border border-[#D6DEEA] px-4 py-3 text-sm font-medium text-slate-600">Vazgeç</button>
             <button type="submit"
-              className="rounded-xl bg-[#00377B] px-4 py-3 text-sm font-medium text-white">Kaydet</button>
+              className="rounded-xl bg-[#00377B] px-4 py-3 text-sm font-medium text-white">
+              {formMode === "edit" ? "Güncelle" : "Kaydet"}
+            </button>
           </div>
         </FormModal>
       )}
